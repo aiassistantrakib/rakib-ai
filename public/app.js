@@ -531,6 +531,15 @@ $('#imgRun').addEventListener('click', async () => {
 });
 
 /* ---------------------------- refresh ---------------------------- */
+/* পর্দার আকার অনুযায়ী প্যানেল খোলা/বন্ধ */
+function applyViewport() {
+  const wide = window.innerWidth > 900;
+  document.documentElement.classList.toggle('is-mobile', !wide);
+  const th = document.querySelector('.table-wrap');
+  if (th) th.classList.toggle('scrollable', !wide);
+}
+window.addEventListener('resize', applyViewport);
+
 async function refresh() {
   try {
     const j = await api('/api/state?probe=0');
@@ -558,6 +567,7 @@ async function refresh() {
 $('#statusBtn').addEventListener('click', () => setView('settings'));
 
 /* ---------------------------- boot ---------------------------- */
+applyViewport();
 autoSize(); updateSend(); renderConvs(); renderChat();
 refresh().then(() => {
   if (location.hash === '#media') setView('media');

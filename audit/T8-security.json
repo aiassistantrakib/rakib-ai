@@ -1,0 +1,72 @@
+[
+  {
+    "check": "API key not in /api/state",
+    "result": "SAFE",
+    "detail": ""
+  },
+  {
+    "check": "write without token blocked",
+    "result": "SAFE",
+    "detail": "HTTP 401"
+  },
+  {
+    "check": "wrong token blocked",
+    "result": "SAFE",
+    "detail": "HTTP 401"
+  },
+  {
+    "check": "traversal /files/../../data/keys.json",
+    "result": "SAFE",
+    "detail": "HTTP 404"
+  },
+  {
+    "check": "traversal /files/..%2f..%2fdata%2fkeys.json",
+    "result": "SAFE",
+    "detail": "HTTP 403"
+  },
+  {
+    "check": "traversal /files/C:/Windows/win.ini",
+    "result": "SAFE",
+    "detail": "HTTP 403"
+  },
+  {
+    "check": "traversal /files/%2e%2e/%2e%2e/%2e%2e/etc/pa",
+    "result": "SAFE",
+    "detail": "HTTP 404"
+  },
+  {
+    "check": "host header does not bypass bind",
+    "result": "SAFE",
+    "detail": "HTTP 200"
+  },
+  {
+    "check": "write outside workspace blocked",
+    "result": "SAFE",
+    "detail": ""
+  },
+  {
+    "check": "read system file blocked",
+    "result": "SAFE",
+    "detail": ""
+  },
+  {
+    "check": "sandbox cannot read env secrets",
+    "result": "SAFE",
+    "detail": "result: no"
+  },
+  {
+    "check": "audit log has no raw secrets",
+    "result": "SAFE",
+    "detail": ""
+  },
+  {
+    "check": "keys.json stores no plaintext key",
+    "result": "SAFE",
+    "detail": "no keys stored"
+  },
+  {
+    "check": "rate limit enforces 429",
+    "result": "SAFE",
+    "detail": ""
+  }
+]
