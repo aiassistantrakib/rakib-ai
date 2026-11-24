@@ -1,0 +1,9 @@
+{
+  "test": "image_generation",
+  "backend": "RAKIB AI local rasterizer (pure JS, no deps)",
+  "dims": "1080x1350",
+  "bytes": 145518,
+  "secs": 2.62,
+  "cost_usd": 0,
+  "file": "workspace/images/fashion-promo.png"
+}

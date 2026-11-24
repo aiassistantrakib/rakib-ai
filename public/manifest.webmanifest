@@ -1,0 +1,16 @@
+{
+  "name": "RAKIB AI — Multi-Agent OS",
+  "short_name": "RAKIB AI",
+  "description": "ফ্রি, লোকাল-ফার্স্ট মাল্টি-এজেন্ট AI সিস্টেম",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "lang": "bn",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

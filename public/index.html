@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="bn" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>RAKIB AI — Multi-Agent OS</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="logo">R</div>
+      <div class="bt"><b>RAKIB AI</b><span>multi-agent OS</span></div>
+      <button class="ib close-side" id="closeSide" aria-label="বন্ধ">✕</button>
+    </div>
+
+    <button class="newbtn" id="newChat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      নতুন টাস্ক
+    </button>
+
+    <nav class="nav" id="nav">
+      <button class="nvi active" data-view="chat"><i>💬</i>চ্যাট</button>
+      <button class="nvi" data-view="agents"><i>🤖</i>এজেন্ট</button>
+      <button class="nvi" data-view="tasks"><i>🗂️</i>টাস্ক</button>
+      <button class="nvi" data-view="media"><i>🎨</i>ছবি স্টুডিও</button>
+      <button class="nvi" data-view="cost"><i>📊</i>খরচ ও ব্যবহার</button>
+      <button class="nvi" data-view="health"><i>❤️</i>সিস্টেম হেলথ</button>
+      <button class="nvi" data-view="security"><i>🛡️</i>নিরাপত্তা</button>
+      <button class="nvi" data-view="settings"><i>⚙️</i>সেটিংস</button>
+    </nav>
+
+    <div class="convs">
+      <div class="ch"><span>সাম্প্রতিক</span><button id="clearAll" title="সব মুছুন">মুছুন</button></div>
+      <div id="convList"></div>
+    </div>
+
+    <button class="status" id="statusBtn">
+      <span class="dot" id="statusDot"></span>
+      <span class="lbl" id="statusText">সংযোগ দেখছি…</span>
+    </button>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+    <header class="top">
+      <button class="ib menu" id="menuBtn" aria-label="মেনু">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="crumb" id="crumb">চ্যাট</div>
+      <div class="spacer"></div>
+      <div class="pill" id="modelPill" title="মডেল">
+        <span class="mdot"></span><span id="modelPillText">অটো</span>
+      </div>
+      <button class="ib" id="themeBtn" title="থিম">◐</button>
+    </header>
+
+    <!-- ---------- CHAT VIEW ---------- -->
+    <section class="view active" id="view-chat">
+      <div class="chat" id="chat">
+        <div class="thread" id="thread"></div>
+        <div class="composer" id="composer">
+          <div class="attachbar" id="attachbar"></div>
+          <div class="cwrap">
+            <div class="cbar">
+              <button class="ib2" id="toolsBtn" title="টুল">＋</button>
+              <textarea id="input" rows="1" placeholder="RAKIB AI-কে কিছু বলুন… (Enter = পাঠান, Shift+Enter = নতুন লাইন)" aria-label="আপনার বার্তা"></textarea>
+              <button class="send" id="send" title="পাঠান" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              </button>
+            </div>
+            <div class="cmeta">
+              <label class="chk"><input type="checkbox" id="planChk"> মাল্টি-এজেন্ট প্ল্যান</label>
+              <span class="hint" id="composerHint">ফ্রি মডেল · key ছাড়াও চলে</span>
+            </div>
+          </div>
+          <div class="toolpop" id="toolpop" hidden>
+            <div class="tp-head">টুল ও ফাইল</div>
+            <div id="toolSwitches"></div>
+            <button class="tfile" id="pickFile">📎 ফাইল বা ছবি দিন</button>
+            <input type="file" id="fileInput" multiple hidden accept="image/*,.txt,.md,.csv,.json,.log,.js,.py,.html,.css,.yml,.yaml">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- AGENTS VIEW ---------- -->
+    <section class="view" id="view-agents">
+      <div class="page">
+        <div class="ph">
+          <h1>এজেন্ট</h1>
+          <p>প্রতিটি এজেন্টের নিজের টুল, মডেল-টিয়ার ও দায়িত্ব। সবুজ = এখনই চলে, হলুদ = আংশিক, লাল = এখনো চলে না (কারণ লেখা আছে)।</p>
+        </div>
+        <div class="agrid" id="agentGrid"></div>
+      </div>
+    </section>
+
+    <!-- ---------- TASKS VIEW ---------- -->
+    <section class="view" id="view-tasks">
+      <div class="page">
+        <div class="ph"><h1>টাস্ক হিস্ট্রি</h1><p>প্রতিটি রান: কোন এজেন্ট, কোন মডেল, কত সময়, কোন টুল।</p></div>
+        <div class="card" id="taskTable"></div>
+      </div>
+    </section>
+
+    <!-- ---------- MEDIA VIEW ---------- -->
+    <section class="view" id="view-media">
+      <div class="page">
+        <div class="ph"><h1>ছবি স্টুডিও</h1><p>লোকালি, কোনো API ছাড়াই — রিসাইজ, ক্রপ, ফিল্টার, ব্যাকগ্রাউন্ড রিমুভ, ওয়াটারমার্ক। (PNG)</p></div>
+        <div class="studio">
+          <div class="card">
+            <div class="lbl2">১. ছবি দিন (PNG)</div>
+            <input type="file" id="imgFile" accept="image/png" class="inp">
+            <div class="lbl2">২. কাজ বাছুন</div>
+            <select id="imgOp" class="inp">
+              <option value="grayscale">গ্রেস্কেল</option>
+              <option value="brightness">উজ্জ্বলতা</option>
+              <option value="invert">ইনভার্ট</option>
+              <option value="resize">রিসাইজ</option>
+              <option value="crop">ক্রপ</option>
+              <option value="rotate90">৯০° ঘোরান</option>
+              <option value="flip">উল্টো</option>
+              <option value="blur">ব্লার</option>
+              <option value="remove_background">ব্যাকগ্রাউন্ড রিমুভ</option>
+              <option value="watermark">ওয়াটারমার্ক</option>
+            </select>
+            <div class="row2">
+              <input class="inp" id="imgW" placeholder="width" inputmode="numeric">
+              <input class="inp" id="imgH" placeholder="height" inputmode="numeric">
+            </div>
+            <input class="inp" id="imgAmt" placeholder="amount (brightness ±, blur 1-8, bg tolerance)" inputmode="numeric">
+            <input class="inp" id="imgText" placeholder="ওয়াটারমার্ক লেখা">
+            <button class="btn primary" id="imgRun">চালান</button>
+            <div class="msgline" id="imgMsg"></div>
+          </div>
+          <div class="card preview">
+            <div class="lbl2">ফলাফল</div>
+            <div id="imgOut" class="outbox">এখনো কিছু নেই</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- COST VIEW ---------- -->
+    <section class="view" id="view-cost">
+      <div class="page">
+        <div class="ph"><h1>খরচ ও ব্যবহার</h1><p>সব মডেল ফ্রি — বাস্তব খরচ ০. নিচের “সেভ হয়েছে” হিসাবটি paid রেফারেন্স দামে, দেখানোর জন্য।</p></div>
+        <div class="kpis" id="costKpis"></div>
+        <div class="card"><div class="lbl2">মডেল অনুযায়ী</div><div id="costModels"></div></div>
+        <div class="card"><div class="lbl2">দিন অনুযায়ী</div><div id="costDays"></div></div>
+      </div>
+    </section>
+
+    <!-- ---------- HEALTH VIEW ---------- -->
+    <section class="view" id="view-health">
+      <div class="page">
+        <div class="ph"><h1>সিস্টেম হেলথ</h1><p>Ollama, OpenRouter, Groq — কী চলছে, কী নেই।</p></div>
+        <div class="card" id="healthCard"></div>
+        <div class="card"><div class="lbl2">মডেল তালিকা</div><div id="modelTable"></div></div>
+      </div>
+    </section>
+
+    <!-- ---------- SECURITY VIEW ---------- -->
+    <section class="view" id="view-security">
+      <div class="page">
+        <div class="ph"><h1>নিরাপত্তা</h1><p>অডিট লগ, অ্যাক্সেস টোকেন, স্যান্ডবক্স নিয়ম।</p></div>
+        <div class="card" id="secCard"></div>
+        <div class="card"><div class="lbl2">অডিট লগ (সর্বশেষ)</div><div id="auditLog"></div></div>
+      </div>
+    </section>
+
+    <!-- ---------- SETTINGS VIEW ---------- -->
+    <section class="view" id="view-settings">
+      <div class="page">
+        <div class="ph"><h1>সেটিংস</h1><p>ফ্রি key (ঐচ্ছিক), মডেল, টুল, প্রম্পট।</p></div>
+        <div class="card">
+          <div class="lbl2">ফ্রি API key (ঐচ্ছিক — না দিলেও Ollama দিয়ে চলবে)</div>
+          <div class="prow">
+            <div><b>Groq</b><small>দ্রুততম ফ্রি টিয়ার · <a href="https://console.groq.com/keys" target="_blank" rel="noopener">key নিন</a></small></div>
+            <input class="inp mono" id="k_groq" placeholder="gsk_…" autocomplete="off">
+          </div>
+          <div class="prow">
+            <div><b>OpenRouter</b><small>১২টি ফ্রি মডেল · <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">key নিন</a></small></div>
+            <input class="inp mono" id="k_openrouter" placeholder="sk-or-v1-…" autocomplete="off">
+          </div>
+          <button class="btn primary" id="saveKeys">key সেভ করুন</button>
+          <div class="msgline" id="keyMsg"></div>
+        </div>
+        <div class="card">
+          <div class="lbl2">মডেল ব্যবহার</div>
+          <select id="setMode" class="inp">
+            <option value="auto">অটো (টাস্ক অনুযায়ী সেরা ফ্রি মডেল)</option>
+            <option value="pinned">একটি মডেল পিন করুন</option>
+          </select>
+          <select id="setPinned" class="inp"></select>
+          <div class="row2">
+            <label class="fld">Temperature <input type="range" id="setTemp" min="0" max="1.4" step="0.1"><span id="setTempV">0.7</span></label>
+            <label class="fld">Max tokens <input class="inp" id="setTok" inputmode="numeric"></label>
+          </div>
+          <div class="lbl2">সিস্টেম প্রম্পট</div>
+          <textarea id="setSystem" class="inp" rows="4"></textarea>
+          <div class="lbl2">টুল</div>
+          <div id="setTools" class="toolgrid"></div>
+          <button class="btn primary" id="saveSettings">সেটিংস সেভ</button>
+          <div class="msgline" id="setMsg"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/app.js"></script>
+</body>
+</html>
