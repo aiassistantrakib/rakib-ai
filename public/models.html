@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RAKIB AI — Model Intelligence</title>
+<style>
+  :root{
+    --bg:#0b0f14; --bg2:#111721; --card:#151c27; --card2:#1a2230; --line:#232d3d;
+    --ink:#e8eef7; --dim:#93a3b8; --dim2:#64748b;
+    --ok:#37d399; --warn:#f5b544; --bad:#f2545b; --info:#5aa9ff; --accent:#7c5cff;
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 12% -10%,#172033 0%,var(--bg) 55%) no-repeat,var(--bg);color:var(--ink);
+       font:15px/1.55 "Segoe UI","Nirmala UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--info);text-decoration:none}
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:rgba(11,15,20,.82);border-bottom:1px solid var(--line)}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  .bar{display:flex;align-items:center;gap:16px;height:64px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px var(--ok)}
+  .tabs{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .tab{padding:8px 14px;border-radius:999px;border:1px solid transparent;color:var(--dim);cursor:pointer;font-size:14px;background:none}
+  .tab.on{background:var(--card2);border-color:var(--line);color:var(--ink)}
+  main{padding:26px 0 80px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.3px}
+  .sub{color:var(--dim);margin:0 0 22px;font-size:14px}
+  .grid{display:grid;gap:14px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:900px){.g4,.g3,.g2{grid-template-columns:1fr 1fr}}
+  @media(max-width:620px){.g4,.g3,.g2{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+  .kpi{font-size:13px;color:var(--dim);display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .kpi b{font-size:24px;color:var(--ink);font-weight:700;display:block;margin-top:6px;letter-spacing:-.5px}
+  .pill{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .pill.ok{color:var(--ok);border-color:rgba(55,211,153,.35);background:rgba(55,211,153,.08)}
+  .pill.bad{color:var(--bad);border-color:rgba(242,84,91,.35);background:rgba(242,84,91,.08)}
+  .pill.warn{color:var(--warn);border-color:rgba(245,181,68,.35);background:rgba(245,181,68,.08)}
+  .pill.info{color:var(--info);border-color:rgba(90,169,255,.35);background:rgba(90,169,255,.08)}
+  .sec{margin-top:28px}
+  .sec h2{font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .sec h2 span{font-weight:400;color:var(--dim2);font-size:13px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:64px;background:var(--bg)}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  code{font-family:"Cascadia Code",Consolas,monospace;font-size:12.5px;color:#c8d6ea;background:rgba(255,255,255,.04);padding:2px 6px;border-radius:6px;word-break:break-all}
+  .bar-wrap{height:6px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;min-width:70px}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--info));border-radius:99px}
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--ink);padding:9px 16px}
+  button:hover{border-color:#31405a}
+  button.primary{background:linear-gradient(180deg,#8b6bff,#6b46ff);border-color:#7c5cff;font-weight:600}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  input{font:inherit;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0d131c;color:var(--ink)}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,255,.15)}
+  .muted{color:var(--dim2);font-size:12.5px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .mono{font-family:"Cascadia Code",Consolas,monospace}
+  .empty{padding:26px;text-align:center;color:var(--dim2);border:1px dashed var(--line);border-radius:var(--r)}
+  .toast{position:fixed;right:20px;bottom:20px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-size:14px;opacity:0;transform:translateY(8px);transition:.25s;z-index:99}
+  .toast.show{opacity:1;transform:none}
+  .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</head>
+<body>
+<header><div class="wrap bar">
+  <div class="logo"><span class="dot" id="healthDot"></span> RAKIB AI <span class="muted" style="font-weight:400">/ Model Intelligence</span></div>
+  <nav class="tabs">
+    <button class="tab on" data-tab="models">মডেল</button>
+    <button class="tab" data-tab="bench">বেঞ্চমার্ক</button>
+    <button class="tab" data-tab="route">রাউটিং</button>
+    <button class="tab" data-tab="keys">কী</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <h1>মডেল ইন্টেলিজেন্স</h1>
+  <p class="sub">লাইভ ক্যাটালগ, আসল বেঞ্চমার্ক আর স্বয়ংক্রিয় রাউটিং — কোনো ফলাফল বানানো হয় না। <span class="muted" id="stamp"></span></p>
+
+  <section id="tab-models">
+    <div class="grid g4" id="kpis"></div>
+    <div class="sec">
+      <h2>প্রোভাইডার স্বাস্থ্য <span>লাইভ /models প্রোব</span></h2>
+      <div class="grid g3" id="providers"></div>
+    </div>
+    <div class="sec">
+      <h2>সব মডেল <span id="modelCount"></span></h2>
+      <div class="row" style="margin-bottom:12px">
+        <button class="primary" id="refresh">🔄 লাইভ রিফ্রেশ</button>
+        <label class="muted row" style="gap:6px"><input type="checkbox" id="onlyFree" style="width:auto" checked /> শুধু ফ্রি</label>
+        <label class="muted row" style="gap:6px"><input type="checkbox" id="onlyReady" style="width:auto" /> শুধু ব্যবহারযোগ্য</label>
+      </div>
+      <div class="card" style="padding:0;overflow:auto;max-height:640px">
+        <table id="modelsTable"><thead><tr>
+          <th>মডেল</th><th>প্রোভাইডার</th><th>কনটেক্সট</th><th>ইনপুট</th><th>দাম</th><th>অবস্থা</th><th>প্রাইভেসি</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-bench" hidden>
+    <div class="card" id="benchBox">
+      <div class="row" style="justify-content:space-between">
+        <div><b>৯-কাজের আসল বেঞ্চমার্ক</b><div class="muted">reasoning · বাংলা · ইংরেজি · কোডিং · লং-কনটেক্সট · টুল · JSON · রিসার্চ · ইনস্ট্রাকশন</div></div>
+        <button class="primary" id="startBench">বেঞ্চমার্ক চালাও</button>
+      </div>
+      <div id="benchProgress" style="margin-top:14px"></div>
+    </div>
+    <div class="sec"><h2>ফলাফল <span id="benchAt"></span></h2><div id="benchResults"></div></div>
+  </section>
+
+  <section id="tab-route" hidden>
+    <h2 style="font-size:17px;margin:0 0 12px">এজেন্টের জন্য সুপারিশ <span class="muted">(বেঞ্চমার্ক স্কোর + tier মিলিয়ে)</span></h2>
+    <div class="grid g2" id="routes"></div>
+  </section>
+
+  <section id="tab-keys" hidden>
+    <div class="card" style="max-width:620px">
+      <b>API কী (শুধু সার্ভারে জমা হয়)</b>
+      <p class="muted" style="margin:8px 0 16px">কী কখনো ব্রাউজারে সেভ হয় না, লগে বা স্ক্রিনশটে আসে না। জমা হলে সার্ভার শুধু masked রূপ ফেরত দেয়।</p>
+      <div id="keyForms" class="grid" style="gap:14px"></div>
+      <p class="muted" style="margin-top:14px">Numes ইচ্ছাকৃতভাবে বন্ধ — এটি পেইড ক্রেডিট। চালু করতে আলাদা অনুমোদন লাগবে।</p>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = location.origin.startsWith('http://127.0.0.1:7788') || location.origin.includes(':7788') ? location.origin : 'http://127.0.0.1:7788';
+let TOKEN = '';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2600); }
+async function getToken() {
+  if (TOKEN) return TOKEN;
+  try { const r = await fetch(API + '/api/state?probe=0'); const j = await r.json(); TOKEN = j.token || ''; } catch {}
+  return TOKEN;
+}
+async function api(path, opts = {}) {
+  const t = await getToken();
+  const r = await fetch(API + path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-rakib-token': t, ...(opts.headers || {}) } });
+  return r.json();
+}
+
+/* ---------------- ট্যাব ---------------- */
+document.querySelectorAll('.tab').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === b));
+  ['models', 'bench', 'route', 'keys'].forEach((k) => { $('#tab-' + k).hidden = k !== b.dataset.tab; });
+  if (b.dataset.tab === 'bench') loadBench();
+  if (b.dataset.tab === 'route') loadRoutes();
+  if (b.dataset.tab === 'keys') renderKeys();
+});
+
+/* ---------------- মডেল ---------------- */
+let CAT = null;
+async function loadModels(force) {
+  $('#stamp').textContent = 'লোড হচ্ছে…';
+  try {
+    CAT = await api('/api/models/live' + (force ? '?force=1' : ''));
+  } catch (e) { $('#stamp').textContent = 'সার্ভারে পৌঁছানো যায়নি — RAKIB AI চালু আছে?'; return; }
+  renderModels(); $('#stamp').textContent = 'হালনাগাদ: ' + new Date(CAT.at).toLocaleTimeString('bn-BD');
+}
+function renderModels() {
+  if (!CAT) return;
+  const p = CAT.providers, rows = CAT.rows;
+  const free = rows.filter((r) => r.free).length, ready = rows.filter((r) => r.ready).length;
+  const okProv = Object.values(p).filter((x) => x.ok).length;
+  $('#kpis').innerHTML = [
+    ['মোট মডেল (লাইভ)', rows.length, 'pill info', 'OpenRouter ' + (p.openrouter.total || 0)],
+    ['ফ্রি মডেল', free, 'pill ok', 'পেইড ' + (rows.length - free)],
+    ['এখনই ব্যবহারযোগ্য', ready, ready ? 'pill ok' : 'pill warn', ready ? 'চালু' : 'key দরকার'],
+    ['সুস্থ প্রোভাইডার', okProv + '/5', okProv ? 'pill ok' : 'pill bad', 'Ollama · OpenRouter · Groq · Coarena · Numes'],
+  ].map(([k, v, cls, note]) => `<div class="card"><div class="kpi">${k}<span class="${cls}">${esc(note)}</span></div><b>${v}</b></div>`).join('');
+
+  const provMeta = {
+    ollama: ['Ollama (লোকাল)', 'key ছাড়াই, ডেটা বেরোয় না'],
+    openrouter: ['OpenRouter', 'ফ্রি :free মডেল'],
+    groq: ['Groq', 'ফ্রি টিয়ার, দৈনিক সীমা'],
+    coarena: ['Coarena', '⚠️ সব রিকোয়েস্ট জমা হয়'],
+    numes: ['Numes', 'পেইড ক্রেডিট — বন্ধ'],
+  };
+  $('#providers').innerHTML = Object.entries(p).map(([id, v]) => {
+    const [name, note] = provMeta[id] || [id, ''];
+    const st = v.ok ? '<span class="pill ok">ONLINE</span>' : (v.key ? '<span class="pill bad">ERROR ' + esc(v.status || '') + '</span>' : '<span class="pill warn">কী নেই</span>');
+    return `<div class="card"><div class="kpi"><b style="font-size:15px;margin:0">${esc(name)}</b>${st}</div>
+      <div class="muted" style="margin-top:8px">${esc(note)}</div>
+      <div class="muted" style="margin-top:6px">মডেল: ${v.total || v.models || 0}${v.free ? ' · ফ্রি ' + v.free : ''}${v.note ? ' · ' + esc(v.note) : ''}</div></div>`;
+  }).join('');
+
+  const onlyFree = $('#onlyFree').checked, onlyReady = $('#onlyReady').checked;
+  const list = rows.filter((r) => (!onlyFree || r.free) && (!onlyReady || r.ready));
+  $('#modelCount').textContent = list.length + 'টি দেখানো হচ্ছে';
+  $('#modelsTable').querySelector('tbody').innerHTML = list.map((r) => `<tr>
+    <td><code>${esc(r.id)}</code><div class="muted">${esc(r.label && r.label !== r.id ? r.label : '')}</div></td>
+    <td><span class="pill ${r.provider === 'ollama' ? 'ok' : 'info'}">${esc(r.provider)}</span></td>
+    <td class="mono">${r.ctx ? (r.ctx >= 1000000 ? (r.ctx / 1000000).toFixed(1) + 'M' : Math.round(r.ctx / 1000) + 'K') : '—'}</td>
+    <td class="muted">${esc((r.inp || []).join(' · '))}</td>
+    <td>${r.free ? '<span class="pill ok">ফ্রি</span>' : '<span class="pill warn">পেইড</span>'}<div class="muted">${esc(r.price || '')}</div></td>
+    <td>${r.ready ? '<span class="pill ok">ব্যবহারযোগ্য</span>' : '<span class="pill warn">কী নেই</span>'}</td>
+    <td class="muted" style="max-width:260px">${esc(r.privacy || '')}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">কিছু নেই</td></tr>';
+}
+$('#refresh').onclick = () => loadModels(true);
+$('#onlyFree').onchange = renderModels; $('#onlyReady').onchange = renderModels;
+
+/* ---------------- বেঞ্চমার্ক ---------------- */
+let poll = null;
+async function loadBench() {
+  const j = await api('/api/models/bench');
+  renderBench(j);
+  if (j.status.active) startPolling();
+}
+function renderBench(j) {
+  const s = j.status;
+  $('#benchProgress').innerHTML = s.active
+    ? `<div class="row"><span class="live"></span> চলছে… ${s.done}/${s.total} <span class="pill info">${s.pct}%</span></div>
+       <div class="bar-wrap" style="margin-top:10px"><div class="bar-fill" style="width:${s.pct}%"></div></div>
+       <div class="muted" style="margin-top:10px;max-height:120px;overflow:auto">${(s.log || []).slice(-8).map((l) => `${esc(l.key)} → ${esc(l.task)}: ${l.ok ? '✅' : '❌'} ${l.ms}ms`).join('<br>')}</div>`
+    : (s.startedAt ? `<div class="muted">শেষ রান: ${esc(s.startedAt)} · ${s.done}/${s.total}${s.error ? ' · ত্রুটি: ' + esc(s.error) : ''}</div>` : '<div class="muted">এখনো চালানো হয়নি।</div>');
+  const last = j.last;
+  if (!last) { $('#benchResults').innerHTML = '<div class="empty">এখনো কোনো ফলাফল নেই — উপরের বোতাম চাপুন।</div>'; return; }
+  $('#benchAt').textContent = last.finishedAt ? new Date(last.finishedAt).toLocaleString('bn-BD') : '';
+  const taskCols = ['reasoning', 'bengali', 'english', 'coding', 'longctx', 'tools', 'json', 'research', 'instruction'];
+  $('#benchResults').innerHTML = `<div class="card" style="padding:0;overflow:auto"><table><thead><tr>
+    <th>মডেল</th><th>পাস</th><th>গড় লেটেন্সি</th>${taskCols.map((t) => `<th title="${t}">${t.slice(0, 5)}</th>`).join('')}</tr></thead><tbody>
+    ${last.rows.map((r) => `<tr><td><code>${esc(r.id)}</code><div class="muted">${esc(r.provider)}</div></td>
+      <td><b>${r.pass}</b>/${r.pass + r.fail} ${r.dead ? '<span class="pill bad">dead</span>' : ''}<div class="bar-wrap" style="margin-top:6px"><div class="bar-fill" style="width:${Math.round((r.passRate || 0) * 100)}%"></div></div></td>
+      <td class="mono">${r.avgMs ? (r.avgMs / 1000).toFixed(1) + 's' : '—'}</td>
+      ${taskCols.map((t) => { const v = r.tasks[t]; return `<td>${!v ? '<span class="muted">—</span>' : v.ok ? '✅' : '<span title="' + esc(v.error || '') + '">❌</span>'}</td>`; }).join('')}
+    </tr>`).join('')}</tbody></table></div>`;
+}
+function startPolling() {
+  if (poll) return;
+  poll = setInterval(async () => {
+    const j = await api('/api/models/bench'); renderBench(j);
+    if (!j.status.active) { clearInterval(poll); poll = null; toast('বেঞ্চমার্ক শেষ'); }
+  }, 4000);
+}
+$('#startBench').onclick = async () => {
+  $('#startBench').disabled = true;
+  const j = await api('/api/models/bench', { method: 'POST', body: '{}' });
+  toast(j.started ? 'শুরু হয়েছে' : (j.reason || 'শুরু হয়নি'));
+  if (j.started) startPolling();
+  setTimeout(() => { $('#startBench').disabled = false; }, 3000);
+  renderBench({ status: j, last: null });
+};
+
+/* ---------------- রাউটিং ---------------- */
+async function loadRoutes() {
+  const j = await api('/api/models/route');
+  $('#routes').innerHTML = Object.entries(j.recommendations).map(([k, v]) => `<div class="card">
+    <div class="kpi"><b style="font-size:15px;margin:0">${esc(v.label)}</b><span class="pill info">${esc(k)}</span></div>
+    ${v.order.length ? v.order.map((m, i) => `<div class="row" style="margin-top:10px;justify-content:space-between">
+        <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} <code>${esc(m.id)}</code> <span class="muted">${esc(m.provider)}</span></span>
+        <span class="pill">${m.score}</span></div>`).join('')
+      : '<div class="muted" style="margin-top:10px">কোনো ব্যবহারযোগ্য মডেল নেই — key যোগ করুন।</div>'}
+  </div>`).join('');
+}
+
+/* ---------------- কী ---------------- */
+const KEY_FIELDS = [
+  { k: 'OPENROUTER_API_KEY', name: 'OpenRouter', hint: 'openrouter.ai/keys — ফ্রি, কার্ড লাগে না' },
+  { k: 'GROQ_API_KEY', name: 'Groq', hint: 'console.groq.com/keys — ফ্রি টিয়ার' },
+  { k: 'COARENA_API_KEY', name: 'Coarena', hint: 'coarena.ai/account/api/keys — ⚠️ রিকোয়েস্ট জমা হয়' },
+];
+function renderKeys() {
+  $('#keyForms').innerHTML = KEY_FIELDS.map((f) => `<div>
+    <div class="row" style="justify-content:space-between"><b>${esc(f.name)}</b><span class="pill ${CAT && CAT.providers[f.k.split('_')[0].toLowerCase()] && CAT.providers[f.k.split('_')[0].toLowerCase()].key ? 'ok' : 'warn'}">${CAT && CAT.providers[f.k.split('_')[0].toLowerCase()] && CAT.providers[f.k.split('_')[0].toLowerCase()].key ? 'সংরক্ষিত' : 'কী নেই'}</span></div>
+    <div class="muted" style="margin:4px 0 8px">${esc(f.hint)}</div>
+    <div class="row"><input type="password" id="k_${f.k}" placeholder="sk-... / gsk_... / coa_..." autocomplete="off" /><button data-k="${f.k}">সেভ</button></div>
+  </div>`).join('');
+  document.querySelectorAll('#keyForms button').forEach((b) => b.onclick = async () => {
+    const k = b.dataset.k, v = document.getElementById('k_' + k).value.trim();
+    if (!v) return toast('কী খালি');
+    b.disabled = true;
+    const r = await api('/api/keys', { method: 'POST', body: JSON.stringify({ [k]: v }) });
+    document.getElementById('k_' + k).value = '';
+    b.disabled = false;
+    toast(r.ok ? 'সংরক্ষিত ✓ (শুধু সার্ভারে)' : 'সংরক্ষণ ব্যর্থ');
+    await loadModels(true);
+    if (!$('#tab-keys').hidden) renderKeys();
+  });
+}
+
+/* ---------------- শুরু ---------------- */
+loadModels(false);
+</script>
+</body>
+</html>

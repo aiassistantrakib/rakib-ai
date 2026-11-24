@@ -1,0 +1,88 @@
+{
+  "at": "2026-11-24T21:19:45.225Z",
+  "finishedAt": "2026-11-24T21:31:41.231Z",
+  "source": "audit/T14-local-bench.cjs (আসল রান, key ছাড়া)",
+  "byModel": {
+    "ollama:qwen3.5:4b": {
+      "id": "qwen3.5:4b",
+      "provider": "ollama",
+      "ctx": 8192,
+      "tools": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "privacy": "লোকাল — ডেটা বেরোয় না",
+      "tasks": {
+        "reasoning": {
+          "ok": true,
+          "ms": 58065,
+          "toolCalls": 0,
+          "error": null,
+          "sample": "The ball costs 5 cents because if you add 1 cent to the bat's price, it equals the total cost of 1.10 dollars."
+        },
+        "bengali": {
+          "ok": false,
+          "ms": 45831,
+          "toolCalls": 0,
+          "error": null,
+          "sample": "আসসালামু আলাইকুম, আমাদের অনলাইন কাপড়ের দোকান থেকে আজকের বিশেষ অফারে সেরা মানের পোশাক কিনুন। বিভিন্ন ডিজাইনের টি-শার্ট, জিন্স এবং শাড়ির নতুন কালেকশন এখন আপনার "
+        },
+        "english": {
+          "ok": true,
+          "ms": 25462,
+          "toolCalls": 0,
+          "error": null,
+          "sample": "An API is like a helpful waiter in your restaurant who can instantly bring you any dish from the kitchen without you needing to walk down there yourself. It all"
+        },
+        "coding": {
+          "ok": false,
+          "ms": 14952,
+          "toolCalls": 0,
+          "error": null,
+          "sample": "The function incorrectly uses `=` (assignment) instead of `==` or `===` in the condition, causing it to only add elements when they are strictly equal to 0."
+        },
+        "json": {
+          "ok": true,
+          "ms": 12398,
+          "toolCalls": 0,
+          "error": null,
+          "sample": "{\"name\":\"Cotton Saree\",\"price\":1850,\"inStock\":true,\"tags\":[\"cotton\",\"traditional\"]}"
+        },
+        "research": {
+          "ok": true,
+          "ms": 57421,
+          "toolCalls": 0,
+          "error": null,
+          "sample": "*   **Cost Efficiency**: Open-source models eliminate expensive licensing fees and allow small businesses to deploy AI infrastructure on their own hardware, sig"
+        },
+        "instruction": {
+          "ok": true,
+          "ms": 8277,
+          "toolCalls": 0,
+          "error": null,
+          "sample": "\"NAME=RAKIB|ITEMS=3|COST=LOW\""
+        },
+        "tools": {
+          "ok": true,
+          "ms": 20395,
+          "toolCalls": 1,
+          "error": null,
+          "sample": ""
+        },
+        "longctx": {
+          "ok": false,
+          "ms": 300188,
+          "toolCalls": 0,
+          "error": "The operation was aborted due to timeout",
+          "sample": ""
+        }
+      },
+      "pass": 6,
+      "fail": 3,
+      "passRate": 0.67,
+      "avgMs": 60332,
+      "dead": false
+    }
+  }
+}

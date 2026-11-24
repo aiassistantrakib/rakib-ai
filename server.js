@@ -25,6 +25,7 @@ const gw = require('./lib/gateway');
 const orch = require('./lib/orchestrator');
 const agents = require('./lib/agents');
 const tools = require('./lib/tools');
+const mintel = require('./lib/modelintel');
 
 /* ------------------------------ access token ------------------------------ */
 // লোকাল ব্যবহারের জন্য এক টোকেন — UI স্বয়ংক্রিয়ভাবে পায়, বাইরের কেউ বিনা টোকেনে API ব্যবহার করতে পারে না।
@@ -104,7 +105,7 @@ const server = http.createServer(async (req, res) => {
     if (rateLimited(ip)) return send(res, 429, { ok: false, message: 'অনেক বেশি অনুরোধ — এক মিনিট পরে চেষ্টা করুন' });
 
     // ---- static UI ----
-    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html' || /^\/(app\.css|app\.js|manifest\.webmanifest|sw\.js|icon-[0-9a-z]+\.png|favicon\.ico)$/.test(url.pathname))) {
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html' || /^\/(app\.css|app\.js|manifest\.webmanifest|sw\.js|icon-[0-9a-z]+\.png|favicon\.ico|models\.html)$/.test(url.pathname))) {
       const rel = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
       const file = path.join(PUBLIC, rel);
       if (!file.startsWith(PUBLIC)) return send(res, 403, 'forbidden', 'text/plain');
@@ -133,6 +134,10 @@ const server = http.createServer(async (req, res) => {
 
       if (url.pathname === '/api/state') return send(res, 200, await statePayload({ probe: url.searchParams.get('probe') === '1' }));
       if (url.pathname === '/api/agents') return send(res, 200, { agents: agents.list() });
+      /* ---- ফেজ ৪: মডেল ইন্টেলিজেন্স ---- */
+      if (url.pathname === '/api/models/live') return send(res, 200, await mintel.liveCatalogue(url.searchParams.get('force') === '1'));
+      if (url.pathname === '/api/models/bench') return send(res, 200, { status: mintel.statusOf(), last: mintel.lastResults() });
+      if (url.pathname === '/api/models/route') return send(res, 200, { at: new Date().toISOString(), recommendations: mintel.recommendations() });
       if (url.pathname === '/api/usage') return send(res, 200, store.loadUsage());
       if (url.pathname === '/api/audit') return send(res, 200, { events: store.readAudit(Number(url.searchParams.get('n') || 80)) });
       if (url.pathname === '/api/tasks') return send(res, 200, { tasks: (store.loadState().tasks || []).slice(-60).reverse() });
@@ -140,7 +145,8 @@ const server = http.createServer(async (req, res) => {
       if (url.pathname === '/api/keys' && req.method === 'POST') {
         const b = await readBody(req, 100000);
         const patch = {};
-        for (const k of ['OPENROUTER_API_KEY', 'GROQ_API_KEY']) if (k in b) patch[k] = String(b[k] || '');
+        const KEY_FIELDS = ['OPENROUTER_API_KEY', 'GROQ_API_KEY', 'COARENA_API_KEY', 'NUMES_API_KEY'];
+        for (const k of KEY_FIELDS) if (k in b) patch[k] = String(b[k] || '').trim();
         store.writeKeys(patch);
         store.audit('keys_updated', { keys: Object.keys(patch).filter((k) => patch[k]) });
         return send(res, 200, { ok: true, providers: (await statePayload()).providers });
@@ -152,6 +158,12 @@ const server = http.createServer(async (req, res) => {
         s.settings = { ...s.settings, ...b };
         store.saveState(s);
         return send(res, 200, { ok: true, settings: s.settings });
+      }
+
+      if (url.pathname === '/api/models/bench' && req.method === 'POST') {
+        const b = await readBody(req, 100000);
+        const out = await mintel.startBench({ models: Array.isArray(b.models) ? b.models : null, tasks: Array.isArray(b.tasks) ? b.tasks : null });
+        return send(res, 200, out);
       }
 
       if (url.pathname === '/api/health' && req.method === 'POST') {
