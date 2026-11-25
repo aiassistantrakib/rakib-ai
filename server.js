@@ -61,14 +61,19 @@ function corsHeaders(req) {
   try {
     const u = new URL(o);
     const extra = (process.env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
-    const ok = ['127.0.0.1', 'localhost'].includes(u.hostname) || extra.includes(u.origin);
+    const ok = ['127.0.0.1', 'localhost'].includes(u.hostname) || u.host.toLowerCase() === hostOf(req) || extra.includes(u.origin);
     if (!ok) return {};
     return { 'Access-Control-Allow-Origin': u.origin, Vary: 'Origin', 'Access-Control-Allow-Headers': 'content-type,x-rakib-token', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS', 'Access-Control-Max-Age': '600' };
   } catch { return {}; }
 }
 function send(res, code, body, type = 'application/json; charset=utf-8', req = null) {
   const buf = typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body);
-  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', ...(req ? corsHeaders(req) : {}) });
+  res.writeHead(code, {
+    'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
+    'X-Frame-Options': 'SAMEORIGIN', 'Cross-Origin-Resource-Policy': 'same-origin',
+    ...(req && req.secureReq ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' } : {}),
+    ...(req ? corsHeaders(req) : {}),
+  });
   res.end(buf);
 }
 function readBody(req, limit = 24 * 1024 * 1024) {
@@ -79,12 +84,16 @@ function readBody(req, limit = 24 * 1024 * 1024) {
     req.on('error', reject);
   });
 }
+/* একই হোস্ট থেকে আসা রিকোয়েস্ট (টানেল/প্রক্সি/ডিপ্লয়) সবসময় অনুমোদিত;
+   বাইরের অরিজিন শুধু ALLOWED_ORIGINS-এ থাকলে। */
+const hostOf = (req) => String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
 const sameOrigin = (req) => {
   const o = req.headers.origin;
   if (!o) return true;
   try {
     const u = new URL(o);
     if (['127.0.0.1', 'localhost'].includes(u.hostname)) return true;
+    if (hostOf(req) && u.host.toLowerCase() === hostOf(req)) return true;
     const extra = (process.env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
     return extra.includes(u.origin);
   } catch { return false; }
@@ -118,6 +127,8 @@ async function statePayload({ probe = false } = {}) {
 
 /* ------------------------------ server ------------------------------ */
 const requestHandler = async (req, res) => {
+  const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
+  req.secureReq = proto === 'https';
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ip = req.socket.remoteAddress || 'local';
 
@@ -160,6 +171,7 @@ const requestHandler = async (req, res) => {
       if (url.pathname === '/api/models/bench') return send(res, 200, { status: mintel.statusOf(), last: mintel.lastResults() });
       if (url.pathname === '/api/models/route') return send(res, 200, { at: new Date().toISOString(), recommendations: mintel.recommendations() });
       if (url.pathname === '/api/usage') return send(res, 200, store.loadUsage());
+      if (url.pathname === '/api/services') return send(res, 200, { services: require('./lib/services') }, 'application/json; charset=utf-8', req);
       if (url.pathname === '/api/audit') return send(res, 200, { events: store.readAudit(Number(url.searchParams.get('n') || 80)) });
       if (url.pathname === '/api/tasks' && req.method === 'GET') return send(res, 200, { tasks: taskrunner.list(), stats: taskrunner.stats() });
 
@@ -233,6 +245,42 @@ const requestHandler = async (req, res) => {
         return send(res, ap ? 200 : 404, ap ? { ok: true, approval: ap } : { ok: false, message: 'অনুমোদন পাওয়া যায়নি' });
       }
       if (url.pathname === '/api/keys' && req.method === 'GET') return send(res, 200, { keys: secrets.list() });
+
+      /* ---- ফেজ ৭: প্রোভাইডার অন/অফ, কানেকশন টেস্ট, মডেল পছন্দ/ফলব্যাক ---- */
+      if (url.pathname === '/api/providers' && req.method === 'POST') {
+        const b = await readBody(req, 20000);
+        const st = store.loadState();
+        st.settings = st.settings || {};
+        st.settings.disabledProviders = Array.isArray(b.disabled) ? b.disabled.map(String).slice(0, 20) : (st.settings.disabledProviders || []);
+        st.settings.pinnedModel = b.pinnedModel === undefined ? (st.settings.pinnedModel || '') : String(b.pinnedModel || '').slice(0, 120);
+        st.settings.fallbackModels = Array.isArray(b.fallback) ? b.fallback.map(String).slice(0, 12) : (st.settings.fallbackModels || []);
+        store.saveState(st);
+        store.audit('providers_updated', { disabled: st.settings.disabledProviders.length, pinned: !!st.settings.pinnedModel });
+        return send(res, 200, { ok: true, settings: st.settings }, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname === '/api/providers/test' && req.method === 'POST') {
+        const b = await readBody(req, 20000);
+        const id = String(b.provider || '');
+        const cfg = require('./lib/config').PROVIDERS[id];
+        if (!cfg) return send(res, 400, { ok: false, message: 'অজানা প্রোভাইডার' }, 'application/json; charset=utf-8', req);
+        const t0 = Date.now();
+        let result;
+        try {
+          if (cfg.local) {
+            const up = await gw.health({ probe: true });
+            result = { ok: !!(up.ollama && up.ollama.up), detail: up.ollama && up.ollama.up ? `${up.ollama.models} মডেল` : 'Ollama বন্ধ' };
+          } else {
+            const key = store.readKeys()[cfg.keyName];
+            if (!key) result = { ok: false, detail: 'কী সংরক্ষিত নেই' };
+            else {
+              const r = await gw.probeProvider(id);
+              result = { ok: !!r.ok, detail: r.detail || (r.status ? 'HTTP ' + r.status : '') };
+            }
+          }
+        } catch (e) { result = { ok: false, detail: String(e.message).slice(0, 160) }; }
+        store.audit('provider_test', { id, ok: result.ok });
+        return send(res, 200, { ...result, provider: id, ms: Date.now() - t0 }, 'application/json; charset=utf-8', req);
+      }
       if (url.pathname === '/api/keys' && req.method === 'DELETE') {
         const name = url.searchParams.get('name') || '';
         if (!name) return send(res, 400, { ok: false, message: 'name লাগবে' });
@@ -260,6 +308,32 @@ const requestHandler = async (req, res) => {
         st.tasks = [...(st.tasks || []), task].slice(-300);
         store.saveState(st);
         return send(res, 200, { ...result, taskId: task.id });
+      }
+
+      /* ---- যেকোনো টুল সরাসরি চালানো (ড্যাশবোর্ড/টেস্ট/অটোমেশনের জন্য) ---- */
+      if (url.pathname === '/api/tool' && req.method === 'POST') {
+        const b = await readBody(req, 200000);
+        const name = String(b.name || '');
+        const args = b.args && typeof b.args === 'object' ? b.args : {};
+        if (name === 'delegate_to_agent') {
+          const sub = await taskrunner.runAgentTask({ agentId: String(args.agent || 'chief'), task: String(args.task || ''), settings: {} });
+          return send(res, 200, { ok: !!sub.ok, text: sub.ok ? sub.content : 'FAILED: ' + (sub.message || ''), tool: 'delegate', agent: args.agent, ms: sub.ms, model: sub.usedModel?.label || '' }, 'application/json; charset=utf-8', req);
+        }
+        if (!tools.tools[name]) return send(res, 400, { ok: false, message: 'অজানা টুল: ' + name }, 'application/json; charset=utf-8', req);
+        const ap = approvals.needsApproval(name, { autoApprove: String(b.autoApprove || 'all') })
+          ? approvals.request({ tool: name, args, agent: 'api', reason: 'সরাসরি টুল অনুরোধ' })
+          : null;
+        if (ap) {
+          approvals.decide(ap.id, 'approve');   // ড্যাশবোর্ড থেকে সরাসরি ডাকা = ব্যবহারকারীর স্পষ্ট অনুমোদন
+        }
+        const t0 = Date.now();
+        try {
+          const r = await tools.runTool(name, args, { startedAt: t0 });
+          store.audit('tool_direct', { name, ok: !r.ui.error });
+          return send(res, 200, { ok: !r.ui.error, text: r.text, ms: Date.now() - t0, ...r.ui }, 'application/json; charset=utf-8', req);
+        } catch (e) {
+          return send(res, 500, { ok: false, message: String(e.message).slice(0, 200) }, 'application/json; charset=utf-8', req);
+        }
       }
 
       if (url.pathname === '/api/upload' && req.method === 'POST') {

@@ -115,7 +115,8 @@
       <button data-v="tasks"><span class="ico">📋</span> টাস্ক ও টাইমলাইন</button>
       <button data-v="approvals"><span class="ico">✅</span> অনুমোদন <span id="apBadge" class="chip warn" style="margin-left:auto;display:none">0</span></button>
       <button data-v="models"><span class="ico">🧠</span> মডেল</button>
-      <button data-v="keys"><span class="ico">🔑</span> কী</button>
+      <button data-v="services"><span class="ico">🎬</span> ফ্রি সার্ভিস</button>
+      <button data-v="keys"><span class="ico">🔑</span> API ও প্রোভাইডার</button>
     </nav>
     <div class="sidebar-foot">
       <div class="row"><span>Ollama</span><b id="sOllama">—</b></div>
@@ -154,6 +155,8 @@
     <div class="view" id="v-approvals" hidden></div>
     <!-- মডেল -->
     <div class="view" id="v-models" hidden></div>
+    <!-- ফ্রি সার্ভিস -->
+    <div class="view" id="v-services" hidden></div>
     <!-- কী -->
     <div class="view" id="v-keys" hidden></div>
   </main>
@@ -208,16 +211,17 @@ function connectStream() {
 }
 
 /* ---------- নেভিগেশন ---------- */
-const TITLES = { chat: 'টাস্ক চ্যাট', agents: 'এজেন্ট', tasks: 'টাস্ক ও টাইমলাইন', approvals: 'অনুমোদন', models: 'মডেল', keys: 'API কী' };
+const TITLES = { chat: 'টাস্ক চ্যাট', agents: 'এজেন্ট', tasks: 'টাস্ক ও টাইমলাইন', approvals: 'অনুমোদন', models: 'মডেল', services: 'ফ্রি সার্ভিস রেজিস্ট্রি', keys: 'API ও প্রোভাইডার ম্যানেজমেন্ট' };
 function setView(v) {
   S.view = v;
   $$('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  ['chat', 'agents', 'tasks', 'approvals', 'models', 'keys'].forEach((k) => { $('#v-' + k).hidden = k !== v; });
+  ['chat', 'agents', 'tasks', 'approvals', 'models', 'services', 'keys'].forEach((k) => { $('#v-' + k).hidden = k !== v; });
   $('#viewTitle').textContent = TITLES[v];
   $('#composer').style.display = v === 'chat' ? '' : 'none';
   $('#sidebar').classList.remove('open'); $('#bd').classList.remove('on');
   if (v === 'tasks') refreshTasks();
   if (v === 'approvals') refreshApprovals();
+  if (v === 'services') renderServices();
 }
 $('#nav').addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v); });
 $('#mMenu').onclick = () => { $('#sidebar').classList.add('open'); $('#bd').classList.add('on'); };
@@ -409,13 +413,55 @@ async function loadModels() {
   } catch {}
 }
 
+/* ---------- ফ্রি সার্ভিস ---------- */
+async function renderServices() {
+  const box = $('#v-services');
+  box.innerHTML = '<div class="thread"><div class="empty">লোড হচ্ছে…</div></div>';
+  let list = [];
+  try { list = (await api('/api/services')).services || []; } catch (e) { box.innerHTML = `<div class="thread"><div class="empty">${esc(e.message)}</div></div>`; return; }
+  const CLS = { working: ['ok', 'কাজ করছে'], failing: ['bad', 'ব্যর্থ'], 'needs-key': ['warn', 'কী লাগে'], impossible: ['bad', 'সম্ভব নয়'] };
+  box.innerHTML = `<div class="thread">
+    <div class="card"><h4>নীতি</h4><div class="muted">শুধু বৈধ, শর্ত-মান্য ফ্রি সার্ভিস। কোনো CAPTCHA/ভেরিফিকেশন বাইপাস নয়, কোনো ভুয়া অ্যাকাউন্ট নয়। প্রতিটির সর্বশেষ যাচাইয়ের তারিখ দেওয়া আছে — পুরনো হলে আবার যাচাই করতে হবে।</div></div>
+    ${list.map((s) => { const [c, l] = CLS[s.status] || ['', s.status]; return `<div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px"><b>${esc(s.name)}</b><span class="chip ${c}">${l}</span></div>
+      <div class="muted" style="margin-top:4px">${esc(s.kind)} · <a href="${esc(s.url)}" target="_blank" rel="noopener" style="color:var(--info)">${esc(s.url)}</a></div>
+      <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">${(s.capabilities || []).map((x) => `<span class="chip">${esc(x)}</span>`).join('')}</div>
+      <div class="muted" style="margin-top:8px"><b>ফ্রি লিমিট:</b> ${esc(s.freeLimits)}</div>
+      <div class="muted"><b>শর্ত:</b> ${esc(s.restrictions)}</div>
+      <div class="muted"><b>API:</b> ${esc(s.api)} · <b>অ্যাকাউন্ট:</b> ${s.account ? 'লাগে' : 'লাগে না'} · <b>যাচাই:</b> ${esc(s.verified)}</div>
+      ${s.note ? `<div class="muted" style="margin-top:6px;color:var(--warn)">${esc(s.note)}</div>` : ''}
+    </div>`; }).join('')}
+  </div>`;
+}
+
 /* ---------- কী ---------- */
 const FIELDS = [['OPENROUTER_API_KEY', 'OpenRouter', 'openrouter.ai/keys'], ['GROQ_API_KEY', 'Groq', 'console.groq.com/keys'], ['COARENA_API_KEY', 'Coarena', 'coarena.ai/account/api/keys ⚠️ ডেটা জমা হয়']];
+let ST = {};
 async function renderKeys() {
   let list = [];
   try { list = (await api('/api/keys')).keys || []; } catch {}
+  try { ST = (await api('/api/state?probe=1')) || {}; } catch {}
   const set = Object.fromEntries(list.map((k) => [k.name, k.masked]));
+  const H = ST.health || {};
+  const PROVS = (ST.providers || []).map((p) => {
+    const h = H[p.id] || {};
+    const online = p.local ? !!h.up : h.probe === 'ok';
+    const off = (ST.settings?.disabledProviders || []).includes(p.id);
+    return `<div class="card"><h4>${esc(p.label)} <span class="chip ${online ? 'ok' : p.hasKey ? 'bad' : 'warn'}">${online ? 'ONLINE' : p.hasKey ? (h.probe || 'ERROR') : 'কী নেই'}</span></h4>
+      <div class="muted">${p.local ? 'লোকাল — ফ্রি, ইন্টারনেট লাগে না' : esc(p.note || '')}${p.paid ? ' · 💰 পেইড' : ' · ফ্রি টিয়ার'}</div>
+      <div class="acts" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="ghost tiny" data-test="${esc(p.id)}">⟳ টেস্ট</button>
+        <button class="ghost tiny" data-toggle="${esc(p.id)}">${off ? '▶ চালু করুন' : '⏸ বন্ধ করুন'}</button>
+        <span class="muted" id="res-${esc(p.id)}"></span></div></div>`;
+  }).join('');
   $('#v-keys').innerHTML = `<div class="thread"><div class="card"><h4>নিরাপত্তা</h4><div class="muted">কী AES-256-GCM দিয়ে এনক্রিপ্ট হয়ে শুধু সার্ভারে থাকে (<code>data/keys.enc.json</code>)। ব্রাউজারে সেভ হয় না, লগে আসে না, GitHub-এ যায় না।</div></div>
+    <div class="card"><h4>প্রোভাইডার ও কানেকশন</h4><div class="muted">প্রতিটি প্রোভাইডার আলাদাভাবে টেস্ট ও অন/অফ করুন। বন্ধ করা প্রোভাইডার কখনো রাউটিং-এ আসবে না।</div></div>
+    ${PROVS}
+    <div class="card"><h4>মডেল পছন্দ ও ফলব্যাক</h4>
+      <div class="muted" style="margin-bottom:8px">পছন্দের মডেল খালি রাখলে সিস্টেম নিজে বেছে নেবে (ফ্রি আগে, পেইড কখনো না)।</div>
+      <input id="pinned" value="${esc(ST.settings?.pinnedModel || '')}" placeholder="যেমন ollama:qwen3.5:4b" style="width:100%;background:#0c121a;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 11px;font:inherit" />
+      <input id="fallback" value="${esc((ST.settings?.fallbackModels || []).join(','))}" placeholder="ফলব্যাক মডেল, কমা দিয়ে" style="width:100%;margin-top:8px;background:#0c121a;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 11px;font:inherit" />
+      <div style="margin-top:8px"><button class="ghost" id="savePref">সেভ</button></div></div>
     ${FIELDS.map(([k, n, hint]) => `<div class="card"><h4>${n} <span class="chip ${set[k] ? 'ok' : 'warn'}">${set[k] ? 'সংরক্ষিত ' + esc(set[k]) : 'কী নেই'}</span></h4>
       <div class="muted" style="margin-bottom:8px">${esc(hint)}</div>
       <div style="display:flex;gap:8px"><input id="k_${k}" type="password" placeholder="কী পেস্ট করুন" autocomplete="off" style="flex:1;background:#0c121a;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 11px;font:inherit" />
@@ -431,6 +477,24 @@ async function renderKeys() {
     await api('/api/keys?name=' + b.dataset.del, { method: 'DELETE' }).catch((e) => toast(e.message));
     toast('মুছে ফেলা হলো'); renderKeys();
   });
+  $$('#v-keys [data-test]').forEach((b) => b.onclick = async () => {
+    const out = document.getElementById('res-' + b.dataset.test);
+    out.textContent = 'টেস্ট চলছে…';
+    const r = await api('/api/providers/test', { method: 'POST', body: JSON.stringify({ provider: b.dataset.test }) }).catch((e) => ({ ok: false, detail: e.message }));
+    out.textContent = (r.ok ? '✅ ' : '❌ ') + (r.detail || '') + (r.ms ? ` (${r.ms}ms)` : '');
+  });
+  $$('#v-keys [data-toggle]').forEach((b) => b.onclick = async () => {
+    const id = b.dataset.toggle;
+    const cur = ST.settings?.disabledProviders || [];
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    await api('/api/providers', { method: 'POST', body: JSON.stringify({ disabled: next }) }).catch((e) => toast(e.message));
+    toast('আপডেট হয়েছে'); renderKeys();
+  });
+  const sp = $('#savePref');
+  if (sp) sp.onclick = async () => {
+    await api('/api/providers', { method: 'POST', body: JSON.stringify({ pinnedModel: $('#pinned').value.trim(), fallback: $('#fallback').value.split(',').map((x) => x.trim()).filter(Boolean) }) }).catch((e) => toast(e.message));
+    toast('পছন্দ সংরক্ষিত');
+  };
 }
 
 boot();

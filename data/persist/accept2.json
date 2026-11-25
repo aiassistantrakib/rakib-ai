@@ -1,0 +1,47 @@
+[
+ [
+  "Approval card raised",
+  "PASS",
+  "write_file risk=উচ্চ"
+ ],
+ [
+  "Approved tool executed",
+  "PASS",
+  ""
+ ],
+ [
+  "File written to disk",
+  "PASS",
+  ""
+ ],
+ [
+  "Rejected tool blocked",
+  "PASS",
+  ""
+ ],
+ [
+  "Rejected file NOT created",
+  "PASS",
+  ""
+ ],
+ [
+  "Edited args used (new path)",
+  "PASS",
+  ""
+ ],
+ [
+  "Cancel accepted",
+  "PASS",
+  ""
+ ],
+ [
+  "Task marked cancelled",
+  "PASS",
+  "status=cancelled"
+ ],
+ [
+  "Retry creates new task",
+  "PASS",
+  "new=c856b1e2d029979e"
+ ]
+]
