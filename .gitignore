@@ -6,7 +6,7 @@ data/access-token
 data/logs/
 data/usage.json
 data/state.json
-data/bench/*.json
+
 workspace/
 node_modules/
 audit/*.log
