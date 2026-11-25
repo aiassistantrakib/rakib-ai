@@ -117,7 +117,7 @@ async function statePayload({ probe = false } = {}) {
 }
 
 /* ------------------------------ server ------------------------------ */
-const server = http.createServer(async (req, res) => {
+const requestHandler = async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ip = req.socket.remoteAddress || 'local';
 
@@ -305,12 +305,14 @@ const server = http.createServer(async (req, res) => {
     const bad = /invalid json|body too large|অবৈধ অনুরোধ/i.test(String(err.message));
     send(res, bad ? 400 : 500, { ok: false, message: bad ? 'অবৈধ অনুরোধ (JSON ভাঙা বা বড়)' : String(err.message).slice(0, 200) });
   }
-});
+};
+
+const server = http.createServer((req, res) => { requestHandler(req, res); });
 
 if (require.main === module) {
   server.listen(PORT, HOST, () => {
-    console.log(`RAKIB AI → http://localhost:${PORT}`);
+    console.log(`RAKIB AI → http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
     console.log(`(বন্ধ করতে Ctrl+C)`);
   });
 }
-module.exports = { server, statePayload, TOKEN };
+module.exports = { server, requestHandler, statePayload, TOKEN };
