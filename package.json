@@ -7,8 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node tests/tools.test.js && node tests/security.test.js && node tests/orchestrator.test.js",
-    "test:all": "node tests/tools.test.js && node tests/e2e.test.js && node tests/security.test.js && node tests/orchestrator.test.js && node tests/vision.test.js && node tests/research.test.js",
+    "test": "node tests/tools.test.js && node tests/security.test.js && node tests/orchestrator.test.js && node tests/mgmt.test.js",
+    "test:all": "node tests/tools.test.js && node tests/security.test.js && node tests/orchestrator.test.js && node tests/mgmt.test.js && node tests/e2e.test.js",
     "scan": "node scripts/security-scan.cjs"
   },
   "engines": {

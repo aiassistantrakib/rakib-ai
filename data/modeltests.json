@@ -1,0 +1,45 @@
+{
+  "providers": {
+    "ollama": {
+      "ok": true,
+      "detail": "1টি মডেল পাওয়া গেছে",
+      "models": [
+        "qwen3.5:4b"
+      ],
+      "at": "2026-11-25T15:21:04.927Z",
+      "ms": 52
+    },
+    "p_test-custom_39j": {
+      "ok": false,
+      "detail": "HTTP 401: Incorrect API key provided: sk-inval**************3456. You can find your API key at https://platform.openai.com/account/api-keys.",
+      "models": [],
+      "at": "2026-11-25T15:22:37.297Z",
+      "ms": 1163
+    },
+    "p_unit-test-prov_mr8": {
+      "ok": false,
+      "detail": "HTTP 401: Incorrect API key provided: sk-unit-*****************mnop. You can find your API key at https://platform.openai.com/account/api-keys.",
+      "models": [],
+      "at": "2026-11-25T15:28:31.553Z",
+      "ms": 507
+    },
+    "p_unit-test-prov_uuo": {
+      "ok": false,
+      "detail": "HTTP 401: Incorrect API key provided: sk-unit-*****************mnop. You can find your API key at https://platform.openai.com/account/api-keys.",
+      "models": [],
+      "at": "2026-11-25T15:31:54.674Z",
+      "ms": 1153
+    }
+  },
+  "models": {
+    "m_mww9sql4q8nk": {
+      "ok": true,
+      "reply": "UNIT-OK",
+      "detail": "উত্তর পাওয়া গেছে",
+      "at": "2026-11-25T15:32:13.562Z",
+      "ms": 18751,
+      "modelId": "qwen3.5:4b",
+      "providerId": "ollama"
+    }
+  }
+}

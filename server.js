@@ -29,6 +29,8 @@ const mintel = require('./lib/modelintel');
 const taskrunner = require('./lib/tasks');
 const approvals = require('./lib/approvals');
 const secrets = require('./lib/secrets');
+const models = require('./lib/models');
+const agentstore = require('./lib/agentstore');
 
 /* ------------------------------ access token ------------------------------ */
 // লোকাল ব্যবহারের জন্য এক টোকেন — UI স্বয়ংক্রিয়ভাবে পায়, বাইরের কেউ বিনা টোকেনে API ব্যবহার করতে পারে না।
@@ -135,6 +137,13 @@ const requestHandler = async (req, res) => {
   try {
     if (rateLimited(ip)) return send(res, 429, { ok: false, message: 'অনেক বেশি অনুরোধ — এক মিনিট পরে চেষ্টা করুন' }, 'application/json; charset=utf-8', req);
     if (req.method === 'OPTIONS') { res.writeHead(204, corsHeaders(req)); return res.end(); }
+
+    // ---- Control Center (নতুন কনসোল) ----
+    if (req.method === 'GET' && (url.pathname === '/console' || url.pathname === '/console/' || url.pathname === '/console.html')) {
+      const html = require('./lib/console').page();
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', ...corsHeaders(req) });
+      return res.end(html);
+    }
 
     // ---- static UI ----
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html' || /^\/(app\.css|app\.js|manifest\.webmanifest|sw\.js|icon-[0-9a-z]+\.png|favicon\.ico|models\.html|console\.html)$/.test(url.pathname))) {
@@ -245,6 +254,124 @@ const requestHandler = async (req, res) => {
         return send(res, ap ? 200 : 404, ap ? { ok: true, approval: ap } : { ok: false, message: 'অনুমোদন পাওয়া যায়নি' });
       }
       if (url.pathname === '/api/keys' && req.method === 'GET') return send(res, 200, { keys: secrets.list() });
+
+      /* ================= ফেজ A: মডেল প্রোভাইডার ও কনফিগারেশন ================= */
+      if (url.pathname === '/api/mgmt/providers' && req.method === 'GET') {
+        await models.seedFromConfig(); await models.warm();
+        return send(res, 200, { providers: models.listProviders(), models: models.listModels(), defaultModel: models.read().defaultModel, types: models.TYPES }, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname === '/api/mgmt/providers' && req.method === 'POST') {
+        const b = await readBody(req, 100000);
+        const r = models.addProvider(b || {});
+        store.audit('provider_added', { id: r.provider.id, type: r.provider.type });
+        return send(res, 200, r, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname.startsWith('/api/mgmt/providers/')) {
+        const parts = url.pathname.split('/').filter(Boolean); // api mgmt providers <id> [action]
+        const id = parts[3] || ''; const action = parts[4] || '';
+        if (action === 'test' && req.method === 'POST') {
+          const b = await readBody(req, 20000);
+          const r = await models.testProvider(id, b || {});
+          store.audit('provider_test2', { id, ok: r.ok });
+          return send(res, 200, { ...r, provider: id }, 'application/json; charset=utf-8', req);
+        }
+        if (action === 'discover' && req.method === 'GET') {
+          try { return send(res, 200, await models.discoverModels(id), 'application/json; charset=utf-8', req); }
+          catch (e) { return send(res, 400, { ok: false, message: e.message }, 'application/json; charset=utf-8', req); }
+        }
+        if (action === '' && req.method === 'PUT') {
+          const b = await readBody(req, 100000);
+          const r = models.updateProvider(id, b || {});
+          store.audit('provider_updated', { id });
+          return send(res, 200, r, 'application/json; charset=utf-8', req);
+        }
+        if (action === '' && req.method === 'DELETE') {
+          const r = models.removeProvider(id);
+          store.audit('provider_deleted', { id });
+          return send(res, 200, r, 'application/json; charset=utf-8', req);
+        }
+      }
+      if (url.pathname === '/api/mgmt/models' && req.method === 'GET') {
+        await models.seedFromConfig(); await models.warm();
+        return send(res, 200, { models: models.listModels(url.searchParams.get('provider') || ''), defaultModel: models.read().defaultModel }, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname === '/api/mgmt/models' && req.method === 'POST') {
+        const b = await readBody(req, 100000);
+        const r = models.addModel(b || {});
+        store.audit('model_added', { id: r.model.id, modelId: r.model.modelId });
+        return send(res, 200, r, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname === '/api/mgmt/default' && req.method === 'POST') {
+        const b = await readBody(req, 20000);
+        const r = models.setDefaultModel(String(b.modelRowId || b.id || ''));
+        store.audit('default_model', { id: r.defaultModel });
+        return send(res, 200, r, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname.startsWith('/api/mgmt/models/')) {
+        const parts = url.pathname.split('/').filter(Boolean);
+        const id = parts[3] || ''; const action = parts[4] || '';
+        if (action === 'test' && req.method === 'POST') {
+          const b = await readBody(req, 20000);
+          try { const r = await models.testInference(id, b || {}); store.audit('inference_test', { id, ok: r.ok, ms: r.ms }); return send(res, 200, r, 'application/json; charset=utf-8', req); }
+          catch (e) { return send(res, e.status || 400, { ok: false, message: e.message }, 'application/json; charset=utf-8', req); }
+        }
+        if (action === '' && req.method === 'PUT') {
+          const b = await readBody(req, 100000);
+          return send(res, 200, models.updateModel(id, b || {}), 'application/json; charset=utf-8', req);
+        }
+        if (action === '' && req.method === 'DELETE') {
+          return send(res, 200, models.removeModel(id), 'application/json; charset=utf-8', req);
+        }
+      }
+
+      /* ================= ফেজ B: এজেন্ট তৈরি ও ব্যবস্থাপনা ================= */
+      if (url.pathname === '/api/mgmt/agents' && req.method === 'GET') {
+        await models.seedFromConfig(); await models.warm();
+        return send(res, 200, { agents: agentstore.list(), allTools: agentstore.ALL_TOOLS() }, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname === '/api/mgmt/agents' && req.method === 'POST') {
+        const b = await readBody(req, 200000);
+        const r = agentstore.create(b || {});
+        store.audit('agent_created', { id: r.agent.id, name: r.agent.name });
+        return send(res, 200, r, 'application/json; charset=utf-8', req);
+      }
+      if (url.pathname.startsWith('/api/mgmt/agents/')) {
+        const parts = url.pathname.split('/').filter(Boolean);
+        const id = parts[3] || ''; const action = parts[4] || '';
+        if (action === 'test' && req.method === 'POST') {
+          const b = await readBody(req, 20000);
+          const cfg = agentstore.execConfig(id);
+          if (!cfg) return send(res, 404, { ok: false, message: 'এজেন্ট পাওয়া যায়নি' }, 'application/json; charset=utf-8', req);
+          if (!cfg.model) return send(res, 400, { ok: false, message: 'এই এজেন্টের কোনো মডেল নেই' }, 'application/json; charset=utf-8', req);
+          const t0 = Date.now();
+          try {
+            const out = await gw.callModel(cfg.model, [
+              { role: 'system', content: cfg.system || 'You are a helpful assistant.' },
+              { role: 'user', content: String(b.text || 'Reply with exactly: AGENT-OK') },
+            ], { temperature: cfg.temperature, max_tokens: Math.min(cfg.maxTokens, 512), timeoutMs: Number(b.timeoutMs) || 180000 });
+            const r = { ok: true, reply: String(out.content || '').slice(0, 2000), model: out.model, ms: Date.now() - t0, toolCalls: (out.toolCalls || []).length };
+            store.audit('agent_test', { id, ok: true, ms: r.ms });
+            return send(res, 200, r, 'application/json; charset=utf-8', req);
+          } catch (e) {
+            store.audit('agent_test', { id, ok: false, message: String(e.message).slice(0, 160) });
+            return send(res, 200, { ok: false, message: String(e.message).slice(0, 400), status: e.status || 0, ms: Date.now() - t0 }, 'application/json; charset=utf-8', req);
+          }
+        }
+        if (action === '' && req.method === 'GET') {
+          const a = agentstore.get(id);
+          return send(res, a ? 200 : 404, a ? { agent: a } : { ok: false, message: 'এজেন্ট পাওয়া যায়নি' }, 'application/json; charset=utf-8', req);
+        }
+        if (action === '' && req.method === 'PUT') {
+          const b = await readBody(req, 200000);
+          try { const r = agentstore.update(id, b || {}); store.audit('agent_updated', { id }); return send(res, 200, r, 'application/json; charset=utf-8', req); }
+          catch (e) { return send(res, e.status || 400, { ok: false, message: e.message }, 'application/json; charset=utf-8', req); }
+        }
+        if (action === '' && req.method === 'DELETE') {
+          try { const r = agentstore.remove(id); store.audit('agent_deleted', { id }); return send(res, 200, r, 'application/json; charset=utf-8', req); }
+          catch (e) { return send(res, e.status || 400, { ok: false, message: e.message }, 'application/json; charset=utf-8', req); }
+        }
+      }
+
 
       /* ---- ফেজ ৭: প্রোভাইডার অন/অফ, কানেকশন টেস্ট, মডেল পছন্দ/ফলব্যাক ---- */
       if (url.pathname === '/api/providers' && req.method === 'POST') {

@@ -1,0 +1,337 @@
+{
+  "version": 1,
+  "agents": [
+    {
+      "id": "chief",
+      "name": "Chief Executive",
+      "bn": "প্রধান এজেন্ট",
+      "role": "ইনস্ট্রাকশন বোঝা, পরিকল্পনা বানানো, সাব-টাস্ক ভাগ করা, ফল যাচাই করা",
+      "system": "You are the Chief Executive Agent of RAKIB AI. Break the user request into a short numbered plan, delegate to the right specialist agents with delegate_to_agent, then verify the combined result and give ONE final answer. Never invent facts: use web_search/fetch_url for anything current.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "calculator",
+        "web_search",
+        "fetch_url",
+        "list_files",
+        "read_file",
+        "write_file"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "deep",
+      "createdAt": "2026-11-25T15:20:37.910Z"
+    },
+    {
+      "id": "research",
+      "name": "Deep Research",
+      "bn": "গবেষণা এজেন্ট",
+      "role": "ওয়েব সার্চ, একাধিক সোর্স পড়া, তথ্য যাচাই, রেফারেন্সসহ রিপোর্ট",
+      "system": "You are a Deep Research Agent. Search, read at least 2 sources when possible, cross-check claims, and answer with a short structured report ending in a Sources list of URLs. Say clearly when a fact could not be verified.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "web_search",
+        "fetch_url",
+        "calculator"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "research",
+      "createdAt": "2026-11-25T15:20:37.910Z"
+    },
+    {
+      "id": "coding",
+      "name": "Coding",
+      "bn": "কোডিং এজেন্ট",
+      "role": "কোড লেখা, ডিবাগ, স্যান্ডবক্সে চালিয়ে যাচাই",
+      "system": "You are a senior engineer. Write correct, minimal code. Use run_js to actually test logic before answering. If you write files, keep them inside the workspace.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "run_js",
+        "read_file",
+        "write_file",
+        "list_files"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "code",
+      "createdAt": "2026-11-25T15:20:37.910Z"
+    },
+    {
+      "id": "data",
+      "name": "Data Analyst",
+      "bn": "ডেটা এজেন্ট",
+      "role": "CSV/স্প্রেডশিট বিশ্লেষণ, পরিসংখ্যান, সারাংশ রিপোর্ট",
+      "system": "You are a data analyst. Use csv_stats on the user's file, then explain the numbers plainly. Show the actual computed values, never estimates.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "csv_stats",
+        "read_file",
+        "write_file",
+        "run_js",
+        "calculator"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "code",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "vision",
+      "name": "Vision",
+      "bn": "ছবি বোঝার এজেন্ট",
+      "role": "ছবি/স্ক্রিনশট পড়া, বর্ণনা, ভিজ্যুয়াল প্রশ্নের উত্তর",
+      "system": "You analyse images the user attaches. Describe only what is visible; if unclear, say so.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "vision",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "media",
+      "name": "Image & Media",
+      "bn": "ছবি/মিডিয়া এজেন্ট",
+      "role": "রিসাইজ, ক্রপ, ফিল্টার, ব্যাকগ্রাউন্ড রিমুভ, ওয়াটারমার্ক (লোকাল, ফ্রি)",
+      "system": "You edit images with image_ops. Always report the output file path so the user can open it.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "image_ops",
+        "list_files",
+        "read_file"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "general",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "writer",
+      "name": "Content & Social",
+      "bn": "কনটেন্ট এজেন্ট",
+      "role": "বাংলা/ইংরেজি কনটেন্ট, ক্যাপশন, হ্যাশট্যাগ, মার্কেটিং টেক্সট",
+      "system": "You write marketing content in the user's language. Give 3 options when asked for captions. Keep hashtags relevant and not spammy.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "write_file",
+        "web_search"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "general",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "qa",
+      "name": "Quality Assurance",
+      "bn": "যাচাই এজেন্ট",
+      "role": "অন্য এজেন্টের ফল যাচাই, ফাঁক/ভুল ধরিয়ে দেওয়া",
+      "system": "You are a strict reviewer. Given a claim or draft, list concrete problems (facts, numbers, logic, missing steps) and then a verdict: PASS or FIX. Be brief.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "calculator",
+        "read_file",
+        "web_search"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "deep",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "bn": "নিরাপত্তা এজেন্ট",
+      "role": "নিরাপত্তা পর্যালোচনা, prompt-injection ও secret লিক পরীক্ষা",
+      "system": "You are a security reviewer for this app. Check for secret exposure, unsafe file access, prompt injection and permission problems. Report severity and a concrete fix.",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [
+        "read_file",
+        "list_files",
+        "web_search"
+      ],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "deep",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "browser",
+      "name": "Browser",
+      "bn": "ব্রাউজার এজেন্ট",
+      "role": "সাইটে ক্লিক/ফর্ম পূরণ/স্ক্রল করে কাজ করা",
+      "system": "",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "general",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "computer",
+      "name": "Computer Use",
+      "bn": "কম্পিউটার কন্ট্রোল",
+      "role": "মাউস/কীবোর্ড দিয়ে ডেস্কটপ চালানো",
+      "system": "",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "general",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "mobile",
+      "name": "Mobile",
+      "bn": "মোবাইল এজেন্ট",
+      "role": "ফোন থেকে অ্যাপ ব্যবহার (PWA), ADB দিয়ে ডিভাইস",
+      "system": "",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "general",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "video",
+      "name": "Video",
+      "bn": "ভিডিও এজেন্ট",
+      "role": "টেক্সট/ছবি থেকে ভিডিও বানানো",
+      "system": "",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "vision",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    },
+    {
+      "id": "social",
+      "name": "Social Publishing",
+      "bn": "সোশ্যাল পাবলিশিং",
+      "role": "পোস্ট শিডিউল/প্রকাশ করা",
+      "system": "",
+      "modelRowId": "",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "tools": [],
+      "permissions": {
+        "read": true,
+        "write": false,
+        "sensitive": false
+      },
+      "approval": "sensitive",
+      "enabled": true,
+      "builtin": true,
+      "tier": "general",
+      "createdAt": "2026-11-25T15:20:37.911Z"
+    }
+  ],
+  "updatedAt": "2026-11-25T15:31:54.798Z"
+}
