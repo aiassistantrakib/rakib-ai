@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0f14" />
+<title>RAKIB AI — Agent Console</title>
+<link rel="manifest" href="/manifest.webmanifest" />
+<style>
+  :root{
+    --bg:#0a0e13; --panel:#121924; --panel2:#161f2c; --line:#222e3f; --line2:#2c3a4f;
+    --ink:#e9eff8; --dim:#93a4ba; --dim2:#64748b;
+    --ok:#35d399; --warn:#f6b545; --bad:#f2545b; --info:#5aa9ff; --acc:#7c5cff;
+    --r:14px; --mono:"Cascadia Code",Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.55 "Segoe UI","Nirmala UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .app{display:grid;grid-template-columns:250px 1fr 330px;height:100vh;height:100dvh}
+  /* ---------- sidebar ---------- */
+  aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .brand{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;font-weight:700;letter-spacing:.2px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+  .nav{padding:6px;display:grid;gap:2px}
+  .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--dim);padding:10px 12px;border-radius:10px;font:inherit;cursor:pointer}
+  .nav button:hover{background:rgba(255,255,255,.04);color:var(--ink)}
+  .nav button.on{background:linear-gradient(90deg,rgba(124,92,255,.22),rgba(124,92,255,.06));color:#fff;box-shadow:inset 0 0 0 1px rgba(124,92,255,.25)}
+  .nav .ico{width:18px;text-align:center;opacity:.9}
+  .sidebar-foot{margin-top:auto;padding:12px;border-top:1px solid var(--line);font-size:12px;color:var(--dim2)}
+  .sidebar-foot .row{display:flex;justify-content:space-between;margin-bottom:4px}
+  /* ---------- main ---------- */
+  main{display:flex;flex-direction:column;min-width:0;min-height:0;background:radial-gradient(900px 400px at 30% -10%,#141d2b 0%,var(--bg) 60%)}
+  .topbar{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(10,14,19,.7);backdrop-filter:blur(10px)}
+  .topbar h1{font-size:15px;margin:0;font-weight:650}
+  .topbar .sp{flex:1}
+  .chip{font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+  .chip.ok{color:var(--ok);border-color:rgba(53,211,153,.35);background:rgba(53,211,153,.08)}
+  .chip.warn{color:var(--warn);border-color:rgba(246,181,69,.35);background:rgba(246,181,69,.08)}
+  .chip.bad{color:var(--bad);border-color:rgba(242,84,91,.35);background:rgba(242,84,91,.08)}
+  .chip.info{color:var(--info);border-color:rgba(90,169,255,.35);background:rgba(90,169,255,.08)}
+  .view{flex:1;overflow:auto;padding:18px;min-height:0}
+  /* ---------- chat ---------- */
+  .thread{display:flex;flex-direction:column;gap:14px;max-width:860px;margin:0 auto}
+  .msg{display:flex;gap:10px;animation:in .18s ease-out}
+  @keyframes in{from{opacity:0;transform:translateY(4px)}}
+  .msg .av{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 30px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
+  .msg.user .av{background:linear-gradient(135deg,#7c5cff,#4b8bff);border:0}
+  .bub{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;max-width:min(680px,85%)}
+  .msg.user .bub{background:linear-gradient(180deg,#1a2331,#151d29)}
+  .bub p{margin:0 0 8px}
+  .bub p:last-child{margin:0}
+  .who{font-size:11.5px;color:var(--dim2);margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .ev{font-family:var(--mono);font-size:11.5px;background:#0c121a;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;max-height:170px;overflow:auto}
+  .ev div{padding:1px 0;color:var(--dim)}
+  .ev b{color:var(--ink);font-weight:600}
+  .composer{padding:12px 18px 16px;border-top:1px solid var(--line);background:rgba(10,14,19,.85)}
+  .cwrap{max-width:860px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+  textarea{flex:1;resize:none;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:11px 13px;font:inherit;max-height:160px;min-height:46px}
+  textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(124,92,255,.14)}
+  button.primary{background:linear-gradient(180deg,#8b6bff,#6b46ff);border:1px solid #7c5cff;color:#fff;border-radius:11px;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer}
+  button.primary:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;font:inherit;cursor:pointer}
+  button.ghost:hover{border-color:var(--line2)}
+  button.tiny{padding:4px 9px;font-size:12px;border-radius:8px}
+  /* ---------- right panel ---------- */
+  .side{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .side-head{padding:13px 14px;border-bottom:1px solid var(--line);font-weight:650;font-size:13.5px;display:flex;align-items:center;gap:8px}
+  .side-body{overflow:auto;padding:12px;display:grid;gap:10px;align-content:start}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  .card h4{margin:0 0 6px;font-size:12.5px;color:var(--dim);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .kpi{font-size:20px;font-weight:700;letter-spacing:-.4px}
+  .muted{color:var(--dim2);font-size:12px}
+  .bar{height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--info))}
+  /* ---------- tables/lists ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--dim2);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  code{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.05);padding:1px 5px;border-radius:5px}
+  .agent-card{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);cursor:pointer}
+  .agent-card:hover{border-color:var(--line2)}
+  .agent-card.blocked{opacity:.65}
+  .agent-card .ico{font-size:18px}
+  .tl{position:relative;padding-left:18px}
+  .tl:before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:1px;background:var(--line)}
+  .tl .node{position:relative;margin-bottom:9px}
+  .tl .node:before{content:'';position:absolute;left:-16px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--dim2)}
+  .tl .node.ok:before{background:var(--ok)} .tl .node.bad:before{background:var(--bad)} .tl .node.run:before{background:var(--info);box-shadow:0 0 0 3px rgba(90,169,255,.2)}
+  .tl .t{font-size:11px;color:var(--dim2);font-family:var(--mono)}
+  .approval{border:1px solid rgba(246,181,69,.4);background:rgba(246,181,69,.07);border-radius:12px;padding:12px}
+  .approval.high{border-color:rgba(242,84,91,.45);background:rgba(242,84,91,.07)}
+  .approval .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .btn-ok{background:rgba(53,211,153,.15);border:1px solid rgba(53,211,153,.45);color:var(--ok)}
+  .btn-no{background:rgba(242,84,91,.12);border:1px solid rgba(242,84,91,.4);color:var(--bad)}
+  img.shot{width:100%;border-radius:10px;border:1px solid var(--line);margin-top:8px}
+  .empty{padding:26px;text-align:center;color:var(--dim2);border:1px dashed var(--line);border-radius:12px}
+  .toast{position:fixed;right:16px;bottom:16px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;opacity:0;transform:translateY(8px);transition:.22s;z-index:99}
+  .toast.show{opacity:1;transform:none}
+  /* ---------- mobile ---------- */
+  .mobile-only{display:none}
+  @media(max-width:1100px){.app{grid-template-columns:1fr}.side{display:none}.side.open{display:flex;position:fixed;inset:0 0 0 auto;width:min(360px,88vw);z-index:60;box-shadow:-20px 0 60px rgba(0,0,0,.5)}.mobile-only{display:inline-flex}}
+  @media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}aside.open{display:flex;position:fixed;inset:0 auto 0 0;width:min(280px,80vw);z-index:70}.view{padding:12px}.bub{max-width:92%}}
+  .sheet-bd{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50}
+  .sheet-bd.on{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar">
+    <div class="brand"><span class="dot" id="hDot"></span> RAKIB AI <span class="muted" style="font-weight:400">Console</span></div>
+    <nav class="nav" id="nav">
+      <button class="on" data-v="chat"><span class="ico">💬</span> টাস্ক চ্যাট</button>
+      <button data-v="agents"><span class="ico">🤖</span> এজেন্ট</button>
+      <button data-v="tasks"><span class="ico">📋</span> টাস্ক ও টাইমলাইন</button>
+      <button data-v="approvals"><span class="ico">✅</span> অনুমোদন <span id="apBadge" class="chip warn" style="margin-left:auto;display:none">0</span></button>
+      <button data-v="models"><span class="ico">🧠</span> মডেল</button>
+      <button data-v="keys"><span class="ico">🔑</span> কী</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="row"><span>Ollama</span><b id="sOllama">—</b></div>
+      <div class="row"><span>প্রোভাইডার</span><b id="sProv">—</b></div>
+      <div class="row"><span>সেশন</span><b id="sTok">—</b></div>
+      <div style="margin-top:8px"><a href="/models.html" target="_blank" style="color:var(--info);text-decoration:none">Model Intelligence →</a></div>
+    </div>
+  </aside>
+  <main>
+    <div class="topbar">
+      <button class="ghost tiny mobile-only" id="mMenu">☰</button>
+      <h1 id="viewTitle">টাস্ক চ্যাট</h1>
+      <span class="sp"></span>
+      <span class="chip" id="liveChip">লাইভ</span>
+      <button class="ghost tiny" id="refresh">↻</button>
+      <button class="ghost tiny mobile-only" id="mSide">◎</button>
+    </div>
+
+    <!-- চ্যাট -->
+    <div class="view" id="v-chat">
+      <div class="thread" id="thread"></div>
+    </div>
+    <div class="composer" id="composer">
+      <div class="cwrap">
+        <textarea id="input" rows="1" placeholder="এজেন্টকে বাংলায় কাজ দিন… (Enter পাঠায়, Shift+Enter নতুন লাইন)"></textarea>
+        <button class="primary" id="send">পাঠান</button>
+        <button class="ghost" id="stop" style="display:none">থামান</button>
+      </div>
+    </div>
+
+    <!-- এজেন্ট -->
+    <div class="view" id="v-agents" hidden></div>
+    <!-- টাস্ক -->
+    <div class="view" id="v-tasks" hidden></div>
+    <!-- অনুমোদন -->
+    <div class="view" id="v-approvals" hidden></div>
+    <!-- মডেল -->
+    <div class="view" id="v-models" hidden></div>
+    <!-- কী -->
+    <div class="view" id="v-keys" hidden></div>
+  </main>
+  <div class="side" id="sidePanel">
+    <div class="side-head">লাইভ স্ট্যাটাস <span class="sp" style="flex:1"></span><span class="chip" id="liveChip2">—</span></div>
+    <div class="side-body" id="sideBody"></div>
+  </div>
+</div>
+<div class="sheet-bd" id="bd"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* প্রিভিউ (পোর্ট 51711) হলে আসল সার্ভারে যেতে হবে — API সবসময় 7788-এ */
+const API_BASE = location.port === '7788' ? '' : 'http://127.0.0.1:7788';
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2600); }
+let TOKEN = '';
+async function api(path, opts = {}) {
+  const r = await fetch(API_BASE + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(TOKEN ? { 'x-rakib-token': TOKEN } : {}), ...(opts.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.message || ('HTTP ' + r.status));
+  return j;
+}
+let S = { view: 'chat', tasks: [], approvals: { pending: [], history: [] }, agents: [], current: null };
+
+/* ---------- টোকেন + স্ট্যাটাস ---------- */
+async function boot() {
+  try {
+    const j = await api('/api/state?probe=0');
+    TOKEN = j.token || '';
+    S.agents = j.agents || [];
+    $('#hDot').style.background = j.health?.ollama?.up ? 'var(--ok)' : 'var(--bad)';
+    $('#sOllama').textContent = j.health?.ollama?.up ? 'চালু (' + j.health.ollama.models + ')' : 'বন্ধ';
+    $('#sProv').textContent = (j.providers || []).filter((p) => p.hasKey).length + '/' + (j.providers || []).length;
+    $('#sTok').textContent = 'চালু';
+  } catch (e) { toast('সার্ভারে পৌঁছানো যায়নি'); }
+  connectStream();
+  refreshTasks(); refreshApprovals(); loadModels(); renderAgents(); renderKeys();
+  setInterval(() => { refreshTasks(); refreshApprovals(); }, 12000);
+}
+
+/* ---------- SSE ---------- */
+function connectStream() {
+  try {
+    const es = new EventSource(API_BASE + '/api/tasks/stream');
+    es.onopen = () => { $('#liveChip').className = 'chip ok'; $('#liveChip').textContent = 'লাইভ'; $('#liveChip2').textContent = 'সংযুক্ত'; };
+    es.onerror = () => { $('#liveChip').className = 'chip bad'; $('#liveChip').textContent = 'পুনঃসংযোগ…'; $('#liveChip2').textContent = 'বিচ্ছিন্ন'; };
+    es.onmessage = (m) => { try { const d = JSON.parse(m.data); onEvent(d.taskId, d.ev); } catch {} };
+  } catch { }
+}
+
+/* ---------- নেভিগেশন ---------- */
+const TITLES = { chat: 'টাস্ক চ্যাট', agents: 'এজেন্ট', tasks: 'টাস্ক ও টাইমলাইন', approvals: 'অনুমোদন', models: 'মডেল', keys: 'API কী' };
+function setView(v) {
+  S.view = v;
+  $$('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  ['chat', 'agents', 'tasks', 'approvals', 'models', 'keys'].forEach((k) => { $('#v-' + k).hidden = k !== v; });
+  $('#viewTitle').textContent = TITLES[v];
+  $('#composer').style.display = v === 'chat' ? '' : 'none';
+  $('#sidebar').classList.remove('open'); $('#bd').classList.remove('on');
+  if (v === 'tasks') refreshTasks();
+  if (v === 'approvals') refreshApprovals();
+}
+$('#nav').addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v); });
+$('#mMenu').onclick = () => { $('#sidebar').classList.add('open'); $('#bd').classList.add('on'); };
+$('#mSide').onclick = () => { $('#sidePanel').classList.add('open'); $('#bd').classList.add('on'); };
+$('#bd').onclick = () => { $('#sidebar').classList.remove('open'); $('#sidePanel').classList.remove('open'); $('#bd').classList.remove('on'); };
+$('#refresh').onclick = () => { boot(); toast('রিফ্রেশ'); };
+
+/* ---------- চ্যাট ---------- */
+let curTask = null;
+function addMsg(role, html, meta = '') {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  d.innerHTML = `<div class="av">${role === 'user' ? '🧑' : '🤖'}</div><div class="bub">${html}${meta}</div>`;
+  $('#thread').appendChild(d);
+  $('#v-chat').scrollTop = $('#v-chat').scrollHeight;
+  return d;
+}
+function send() {
+  const text = $('#input').value.trim();
+  if (!text) return;
+  $('#input').value = '';
+  addMsg('user', `<p>${esc(text)}</p>`);
+  api('/api/tasks', { method: 'POST', body: JSON.stringify({ text }) })
+    .then((j) => {
+      curTask = j.id;
+      S.current = j.id;
+      const live = addMsg('bot', `<p class="muted">এজেন্ট কাজ শুরু করেছে…</p><div class="ev" id="liveEv"></div>`);
+      live.dataset.task = j.id;
+      $('#stop').style.display = '';
+    })
+    .catch((e) => addMsg('bot', `<p style="color:var(--bad)">${esc(e.message)}</p>`));
+}
+$('#send').onclick = send;
+$('#input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+$('#input').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(160, e.target.scrollHeight) + 'px'; });
+$('#stop').onclick = async () => {
+  if (!curTask) return;
+  await api('/api/tasks/' + curTask + '/cancel', { method: 'POST', body: '{}' }).catch(() => {});
+  toast('বাতিলের অনুরোধ পাঠানো হয়েছে');
+};
+
+const EVLABEL = { agent_pick: 'এজেন্ট বাছাই', plan: 'পরিকল্পনা', routing: 'মডেল রাউটিং', model_try: 'মডেল চেষ্টা', model_ok: 'মডেল উত্তর দিল', model_fail: 'মডেল ব্যর্থ', tool_start: 'টুল শুরু', tool_done: 'টুল শেষ', delegate: 'সাব-এজেন্টে পাঠানো', delegate_done: 'সাব-এজেন্ট শেষ', screenshot: 'স্ক্রিনশট', artifact: 'ফাইল তৈরি', done: 'সম্পন্ন', error: 'ত্রুটি', cancelled: 'বাতিল' };
+function evLine(ev) {
+  const parts = [`<b>${esc(EVLABEL[ev.type] || ev.type)}</b>`];
+  if (ev.agent) parts.push(esc(ev.agent));
+  if (ev.model) parts.push(esc(ev.model));
+  if (ev.tool) parts.push(esc(ev.tool));
+  if (ev.to) parts.push('→ ' + esc(ev.to));
+  if (ev.ms) parts.push(ev.ms + 'ms');
+  if (ev.status) parts.push('HTTP ' + ev.status);
+  if (ev.error) parts.push('<span style="color:var(--bad)">' + esc(ev.error) + '</span>');
+  if (ev.message) parts.push(esc(ev.message));
+  if (ev.preview) parts.push('<span class="muted">' + esc(String(ev.preview).slice(0, 120)) + '</span>');
+  return `<div>${parts.join(' · ')}</div>`;
+}
+function onEvent(taskId, ev) {
+  const box = document.querySelector(`.msg[data-task="${taskId}"] #liveEv`);
+  if (box) {
+    box.insertAdjacentHTML('beforeend', evLine(ev));
+    box.scrollTop = box.scrollHeight;
+    if (ev.type === 'screenshot' && ev.file) box.insertAdjacentHTML('beforeend', `<img class="shot" src="${API_BASE}/files/${encodeURIComponent(ev.file)}" alt="screenshot" />`);
+    if (ev.type === 'artifact' && ev.rel) box.insertAdjacentHTML('beforeend', `<div><a href="${API_BASE}/files/${encodeURIComponent(ev.rel)}" target="_blank" style="color:var(--info)">📎 ${esc(ev.rel)}</a></div>`);
+  }
+  if (ev.type === 'done' || ev.type === 'error' || ev.type === 'cancelled') finishTask(taskId);
+  if (S.view === 'tasks') refreshTasks();
+  if (ev.type === 'done') toast('টাস্ক সম্পন্ন');
+  if (ev.type === 'error') toast('ত্রুটি: ' + (ev.message || ''));
+}
+async function finishTask(id) {
+  $('#stop').style.display = 'none';
+  try {
+    const t = await api('/api/tasks/' + id);
+    const msg = document.querySelector(`.msg[data-task="${id}"]`);
+    if (!msg) return;
+    const bub = msg.querySelector('.bub');
+    if (t.result && t.result.content) {
+      bub.insertAdjacentHTML('afterbegin', `<p>${esc(t.result.content).replace(/\n/g, '<br>')}</p>`);
+    } else if (t.error) {
+      bub.insertAdjacentHTML('afterbegin', `<p style="color:var(--bad)">${esc(t.error)}</p>`);
+    }
+    const tools = (t.result?.toolTrace || []).map((x) => `<span class="chip">${esc(x.tool)}</span>`).join(' ');
+    bub.insertAdjacentHTML('beforeend', `<div class="who">${t.result?.usedModel?.label ? `<span class="chip info">${esc(t.result.usedModel.label)}</span>` : ''}${t.result?.ms ? `<span class="chip">${(t.result.ms / 1000).toFixed(1)}s</span>` : ''}${tools}<button class="ghost tiny" data-retry="${id}">↻ রিট্রাই</button></div>`);
+    bub.querySelector('[data-retry]')?.addEventListener('click', async () => {
+      const r = await api('/api/tasks/' + id + '/retry', { method: 'POST', body: '{}' }).catch(() => null);
+      if (r?.id) { curTask = r.id; const live = addMsg('bot', `<p class="muted">আবার চেষ্টা চলছে…</p><div class="ev" id="liveEv"></div>`); live.dataset.task = r.id; $('#stop').style.display = ''; }
+    });
+    const b = bub.querySelector('.muted'); if (b && b.textContent.includes('কাজ শুরু')) b.remove();
+  } catch {}
+}
+
+/* ---------- টাস্ক ---------- */
+async function refreshTasks() {
+  try {
+    const j = await api('/api/tasks');
+    S.tasks = j.tasks || []; S.stats = j.stats || {};
+    renderSide();
+    if (S.view === 'tasks') renderTasks(j);
+  } catch {}
+}
+function renderSide() {
+  const s = S.stats || {};
+  $('#sideBody').innerHTML = `
+    <div class="card"><h4>এজেন্ট এক্সিকিউশন</h4><div class="kpi">${s.running || 0} <span class="muted">চলছে</span></div>
+      <div class="muted">কিউ ${s.queued || 0} · সম্পন্ন ${s.done || 0} · ব্যর্থ ${s.error || 0}</div></div>
+    <div class="card"><h4>গড় সময়</h4><div class="kpi">${s.avgMs ? (s.avgMs / 1000).toFixed(1) + 's' : '—'}</div>
+      <div class="muted">টুল কল ${s.toolCalls || 0}</div></div>
+    <div class="card"><h4>অনুমোদন বাকি</h4><div class="kpi">${(S.approvals.pending || []).length}</div>
+      <div class="muted">সব sensitive কাজের জন্য কার্ড</div></div>
+    <div class="card"><h4>সাম্প্রতিক</h4>${(S.tasks || []).slice(0, 6).map((t) => `<div style="margin-bottom:7px"><div style="font-size:12.5px">${esc(t.text.slice(0, 46))}</div><div class="muted">${esc(t.agent || '')} · ${esc(t.status)}${t.ms ? ' · ' + (t.ms / 1000).toFixed(1) + 's' : ''}</div></div>`).join('') || '<div class="muted">এখনো কিছু নেই</div>'}</div>`;
+}
+function renderTasks(j) {
+  const rows = j.tasks || [];
+  const st = { done: ['ok', 'সম্পন্ন'], running: ['info', 'চলছে'], queued: ['warn', 'কিউ'], error: ['bad', 'ব্যর্থ'], cancelled: ['warn', 'বাতিল'] };
+  $('#v-tasks').innerHTML = `<div class="thread"><div class="card" style="margin-bottom:14px"><h4>সিস্টেম স্ট্যাট</h4>
+    <div class="muted">মোট ${j.stats.total} · চলছে ${j.stats.running} · সম্পন্ন ${j.stats.done} · ব্যর্থ ${j.stats.error} · গড় ${j.stats.avgMs ? (j.stats.avgMs / 1000).toFixed(1) + 's' : '—'} · টুল ${j.stats.toolCalls}</div></div>
+    ${rows.length ? rows.map((t) => { const [cls, lab] = st[t.status] || ['', t.status]; return `<div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div><div style="font-weight:600">${esc(t.text)}</div><div class="muted">${esc(t.agent || '—')} · ${new Date(t.at).toLocaleString('bn-BD')} ${t.model ? '· ' + esc(t.model) : ''}</div></div>
+        <span class="chip ${cls}">${lab}</span></div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${(t.tools || []).map((x) => `<span class="chip">${esc(x)}</span>`).join('')}
+        ${t.status === 'running' ? `<button class="ghost tiny" data-cancel="${t.id}">থামান</button>` : `<button class="ghost tiny" data-retry2="${t.id}">↻ রিট্রাই</button>`}
+        <button class="ghost tiny" data-detail="${t.id}">টাইমলাইন</button></div>
+      <div id="det-${t.id}"></div></div>`; }).join('') : '<div class="empty">এখনো কোনো টাস্ক নেই</div>'}</div>`;
+  $$('#v-tasks [data-cancel]').forEach((b) => b.onclick = async () => { await api('/api/tasks/' + b.dataset.cancel + '/cancel', { method: 'POST', body: '{}' }); toast('বাতিল হয়েছে'); refreshTasks(); });
+  $$('#v-tasks [data-retry2]').forEach((b) => b.onclick = async () => { const r = await api('/api/tasks/' + b.dataset.retry2 + '/retry', { method: 'POST', body: '{}' }); toast('নতুন টাস্ক: ' + r.id); refreshTasks(); });
+  $$('#v-tasks [data-detail]').forEach((b) => b.onclick = async () => {
+    const t = await api('/api/tasks/' + b.dataset.detail);
+    document.getElementById('det-' + b.dataset.detail).innerHTML = `<div class="tl" style="margin-top:10px">${(t.events || []).map((e) => `<div class="node ${e.type === 'error' ? 'bad' : e.type === 'done' ? 'ok' : ''}"><div class="t">${new Date(e.at).toLocaleTimeString('bn-BD')}</div>${evLine(e)}</div>`).join('')}</div>`;
+  });
+}
+
+/* ---------- অনুমোদন ---------- */
+async function refreshApprovals() {
+  try {
+    const j = await api('/api/approvals');
+    S.approvals = j;
+    const n = (j.pending || []).length;
+    const badge = $('#apBadge'); badge.style.display = n ? '' : 'none'; badge.textContent = n;
+    if (S.view === 'approvals') renderApprovals(j);
+    renderSide();
+  } catch {}
+}
+function renderApprovals(j) {
+  const p = j.pending || [], h = j.history || [];
+  $('#v-approvals').innerHTML = `<div class="thread">
+    <div class="card"><h4>অনুমোদনের নিয়ম</h4><div class="muted">read-only কাজ (সার্চ, পড়া, ব্রাউজার দেখা) নিজে থেকেই চলে। ফাইল লেখা, ছবি/ভিডিও তৈরি, কোড চালানো — প্রতিটির জন্য নিচে কার্ড আসবে। প্রতিটি সিদ্ধান্ত অডিট লগে যায়।</div></div>
+    ${p.length ? p.map((a) => `<div class="approval ${a.risk === 'sensitive' ? 'high' : ''}">
+      <div style="display:flex;justify-content:space-between;gap:10px"><b>${esc(a.reason)}</b><span class="chip ${a.riskCls}">ঝুঁকি: ${esc(a.riskLabel)}</span></div>
+      <div class="muted" style="margin-top:6px">টুল <code>${esc(a.tool)}</code> · এজেন্ট ${esc(a.agent)} · ${new Date(a.at).toLocaleString('bn-BD')}</div>
+      <div class="ev" style="margin-top:8px">${esc(JSON.stringify(a.args, null, 1)).slice(0, 400)}</div>
+      <div class="acts"><button class="ghost btn-ok" data-ok="${a.id}">✓ অনুমোদন</button><button class="ghost btn-no" data-no="${a.id}">✕ বাতিল</button></div></div>`).join('')
+    : '<div class="empty">এখন কোনো অনুমোদন বাকি নেই</div>'}
+    <div class="card"><h4>সাম্প্রতিক সিদ্ধান্ত</h4>${h.length ? h.slice(0, 12).map((a) => `<div style="margin-bottom:6px" class="muted">${esc(a.status)} · ${esc(a.tool)} · ${esc(a.agent)} · ${new Date(a.decidedAt || a.at).toLocaleString('bn-BD')}</div>`).join('') : '<div class="muted">কিছু নেই</div>'}</div>
+  </div>`;
+  $$('#v-approvals [data-ok]').forEach((b) => b.onclick = () => decideAp(b.dataset.ok, 'approve'));
+  $$('#v-approvals [data-no]').forEach((b) => b.onclick = () => decideAp(b.dataset.no, 'deny'));
+}
+async function decideAp(id, action) {
+  await api('/api/approvals/' + id, { method: 'POST', body: JSON.stringify({ action }) }).catch((e) => toast(e.message));
+  toast(action === 'approve' ? 'অনুমোদিত' : 'বাতিল করা হলো');
+  refreshApprovals();
+}
+
+/* ---------- এজেন্ট ---------- */
+function renderAgents() {
+  const st = { ready: ['ok', 'চালু'], partial: ['warn', 'আংশিক'], blocked: ['bad', 'ব্লকড'], planned: ['warn', 'পরিকল্পিত'] };
+  $('#v-agents').innerHTML = `<div class="thread" style="display:grid;gap:10px">${(S.agents || []).map((a) => {
+    const [cls, lab] = st[a.status] || ['', a.status];
+    return `<div class="agent-card ${a.status === 'blocked' ? 'blocked' : ''}" data-agent="${esc(a.id)}">
+      <div class="ico">🤖</div><div style="flex:1">
+        <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(a.name)}</b><span class="chip ${cls}">${lab}</span></div>
+        <div class="muted">${esc(a.role || '')}</div>
+        <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">${(a.tools || []).map((t) => `<span class="chip">${esc(t)}</span>`).join('') || '<span class="chip">টুল নেই</span>'}</div>
+        ${a.blocker ? `<div class="muted" style="margin-top:6px;color:var(--warn)">⛔ ${esc(a.blocker)}</div>` : ''}
+      </div></div>`;
+  }).join('')}</div>`;
+  $$('#v-agents [data-agent]').forEach((c) => c.onclick = () => { setView('chat'); $('#input').value = '[' + c.dataset.agent + '] '; $('#input').focus(); });
+}
+
+/* ---------- মডেল ---------- */
+async function loadModels() {
+  try {
+    const j = await api('/api/models/live');
+    const p = j.providers || {};
+    $('#v-models').innerHTML = `<div class="thread"><div class="card"><h4>প্রোভাইডার</h4>
+      ${Object.entries(p).map(([k, v]) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)"><span>${esc(k)}</span><span class="chip ${v.ok ? 'ok' : v.key ? 'bad' : 'warn'}">${v.ok ? 'ONLINE' : v.key ? 'ERROR' : 'কী নেই'}</span></div>`).join('')}
+      <div class="muted" style="margin-top:8px">বিস্তারিত: <a href="/models.html" target="_blank" style="color:var(--info)">Model Intelligence</a></div></div>
+      <div class="card"><h4>ব্যবহারযোগ্য মডেল</h4>${(j.rows || []).filter((r) => r.ready).map((r) => `<div style="padding:4px 0"><code>${esc(r.id)}</code> <span class="chip">${esc(r.provider)}</span></div>`).join('') || '<div class="muted">কিছু নেই</div>'}</div></div>`;
+  } catch {}
+}
+
+/* ---------- কী ---------- */
+const FIELDS = [['OPENROUTER_API_KEY', 'OpenRouter', 'openrouter.ai/keys'], ['GROQ_API_KEY', 'Groq', 'console.groq.com/keys'], ['COARENA_API_KEY', 'Coarena', 'coarena.ai/account/api/keys ⚠️ ডেটা জমা হয়']];
+async function renderKeys() {
+  let list = [];
+  try { list = (await api('/api/keys')).keys || []; } catch {}
+  const set = Object.fromEntries(list.map((k) => [k.name, k.masked]));
+  $('#v-keys').innerHTML = `<div class="thread"><div class="card"><h4>নিরাপত্তা</h4><div class="muted">কী AES-256-GCM দিয়ে এনক্রিপ্ট হয়ে শুধু সার্ভারে থাকে (<code>data/keys.enc.json</code>)। ব্রাউজারে সেভ হয় না, লগে আসে না, GitHub-এ যায় না।</div></div>
+    ${FIELDS.map(([k, n, hint]) => `<div class="card"><h4>${n} <span class="chip ${set[k] ? 'ok' : 'warn'}">${set[k] ? 'সংরক্ষিত ' + esc(set[k]) : 'কী নেই'}</span></h4>
+      <div class="muted" style="margin-bottom:8px">${esc(hint)}</div>
+      <div style="display:flex;gap:8px"><input id="k_${k}" type="password" placeholder="কী পেস্ট করুন" autocomplete="off" style="flex:1;background:#0c121a;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 11px;font:inherit" />
+      <button class="ghost" data-save="${k}">সেভ</button>${set[k] ? `<button class="ghost btn-no" data-del="${k}">মুছুন</button>` : ''}</div></div>`).join('')}
+    </div>`;
+  $$('#v-keys [data-save]').forEach((b) => b.onclick = async () => {
+    const k = b.dataset.save, v = document.getElementById('k_' + k).value.trim();
+    if (!v) return toast('কী খালি');
+    await api('/api/keys', { method: 'POST', body: JSON.stringify({ [k]: v }) }).catch((e) => toast(e.message));
+    toast('সংরক্ষিত'); renderKeys();
+  });
+  $$('#v-keys [data-del]').forEach((b) => b.onclick = async () => {
+    await api('/api/keys?name=' + b.dataset.del, { method: 'DELETE' }).catch((e) => toast(e.message));
+    toast('মুছে ফেলা হলো'); renderKeys();
+  });
+}
+
+boot();
+</script>
+</body>
+</html>

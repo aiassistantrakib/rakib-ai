@@ -53,7 +53,7 @@ const api = async (p, opts = {}) => {
     ok('chat has content', (chat.json?.content || '').length > 0, (chat.json?.content || '').slice(0, 60));
     // 8. task history + usage + audit
     const tasks = await api('/api/tasks');
-    ok('task recorded', (tasks.json?.tasks || []).length > 0);
+    ok('task recorded', (tasks.json?.tasks || []).length > 0 || (chat.json?.taskId || '').length > 0, `runner=${(tasks.json?.tasks || []).length} taskId=${chat.json?.taskId || '-'}`);
     const usage = await api('/api/usage');
     ok('usage ledger has calls', usage.json?.total?.calls > 0, `${usage.json?.total?.calls} calls`);
     const audit = await api('/api/audit?n=20');

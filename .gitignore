@@ -1,8 +1,16 @@
+# কী ও সিক্রেট — কখনো কমিট হবে না
 data/keys.json
+data/keys.enc.json
+data/master.key
 data/access-token
 data/logs/
 data/usage.json
 data/state.json
+data/bench/*.json
 workspace/
 node_modules/
 audit/*.log
+console-preview/
+*.log
+.env
+.env.*

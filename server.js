@@ -26,6 +26,9 @@ const orch = require('./lib/orchestrator');
 const agents = require('./lib/agents');
 const tools = require('./lib/tools');
 const mintel = require('./lib/modelintel');
+const taskrunner = require('./lib/tasks');
+const approvals = require('./lib/approvals');
+const secrets = require('./lib/secrets');
 
 /* ------------------------------ access token ------------------------------ */
 // লোকাল ব্যবহারের জন্য এক টোকেন — UI স্বয়ংক্রিয়ভাবে পায়, বাইরের কেউ বিনা টোকেনে API ব্যবহার করতে পারে না।
@@ -51,9 +54,21 @@ const MIME = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
   '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8', '.csv': 'text/csv; charset=utf-8', '.pdf': 'application/pdf',
 };
-function send(res, code, body, type = 'application/json; charset=utf-8') {
+/* CORS: শুধু লুপব্যাক অরিজিন + ALLOWED_ORIGINS — কী কখনো ক্রস-অরিজিনে যায় না */
+function corsHeaders(req) {
+  const o = req.headers.origin;
+  if (!o) return {};
+  try {
+    const u = new URL(o);
+    const extra = (process.env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const ok = ['127.0.0.1', 'localhost'].includes(u.hostname) || extra.includes(u.origin);
+    if (!ok) return {};
+    return { 'Access-Control-Allow-Origin': u.origin, Vary: 'Origin', 'Access-Control-Allow-Headers': 'content-type,x-rakib-token', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS', 'Access-Control-Max-Age': '600' };
+  } catch { return {}; }
+}
+function send(res, code, body, type = 'application/json; charset=utf-8', req = null) {
   const buf = typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body);
-  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' });
+  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', ...(req ? corsHeaders(req) : {}) });
   res.end(buf);
 }
 function readBody(req, limit = 24 * 1024 * 1024) {
@@ -67,7 +82,12 @@ function readBody(req, limit = 24 * 1024 * 1024) {
 const sameOrigin = (req) => {
   const o = req.headers.origin;
   if (!o) return true;
-  try { const u = new URL(o); return ['127.0.0.1', 'localhost'].includes(u.hostname) || u.port === '52178'; } catch { return false; }
+  try {
+    const u = new URL(o);
+    if (['127.0.0.1', 'localhost'].includes(u.hostname)) return true;
+    const extra = (process.env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
+    return extra.includes(u.origin);
+  } catch { return false; }
 };
 
 /* ------------------------------ state ------------------------------ */
@@ -102,15 +122,16 @@ const server = http.createServer(async (req, res) => {
   const ip = req.socket.remoteAddress || 'local';
 
   try {
-    if (rateLimited(ip)) return send(res, 429, { ok: false, message: 'অনেক বেশি অনুরোধ — এক মিনিট পরে চেষ্টা করুন' });
+    if (rateLimited(ip)) return send(res, 429, { ok: false, message: 'অনেক বেশি অনুরোধ — এক মিনিট পরে চেষ্টা করুন' }, 'application/json; charset=utf-8', req);
+    if (req.method === 'OPTIONS') { res.writeHead(204, corsHeaders(req)); return res.end(); }
 
     // ---- static UI ----
-    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html' || /^\/(app\.css|app\.js|manifest\.webmanifest|sw\.js|icon-[0-9a-z]+\.png|favicon\.ico|models\.html)$/.test(url.pathname))) {
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html' || /^\/(app\.css|app\.js|manifest\.webmanifest|sw\.js|icon-[0-9a-z]+\.png|favicon\.ico|models\.html|console\.html)$/.test(url.pathname))) {
       const rel = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
       const file = path.join(PUBLIC, rel);
-      if (!file.startsWith(PUBLIC)) return send(res, 403, 'forbidden', 'text/plain');
+      if (!file.startsWith(PUBLIC)) return send(res, 403, 'forbidden', 'text/plain', req);
       return fs.readFile(file, (err, data) => {
-        if (err) return send(res, 404, 'not found', 'text/plain');
+        if (err) return send(res, 404, 'not found', 'text/plain', req);
         send(res, 200, data, MIME[path.extname(file)] || 'application/octet-stream');
       });
     }
@@ -126,27 +147,29 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- API: token required for mutating/expensive calls ----
-    const needsToken = !['GET'].includes(req.method);
+    const needsToken = !['GET', 'OPTIONS'].includes(req.method);
     if (url.pathname.startsWith('/api/')) {
       const given = req.headers['x-rakib-token'] || url.searchParams.get('token') || '';
-      if (needsToken && given !== TOKEN) return send(res, 401, { ok: false, error: 'TOKEN', message: 'টোকেন নেই — অ্যাপ থেকে আবার চেষ্টা করুন' });
-      if (!sameOrigin(req)) return send(res, 403, { ok: false, message: 'origin অনুমোদিত নয়' });
+      if (needsToken && given !== TOKEN) return send(res, 401, { ok: false, error: 'TOKEN', message: 'টোকেন নেই — অ্যাপ থেকে আবার চেষ্টা করুন' }, 'application/json; charset=utf-8', req);
+      if (!sameOrigin(req)) return send(res, 403, { ok: false, message: 'origin অনুমোদিত নয়' }, 'application/json; charset=utf-8', req);
 
-      if (url.pathname === '/api/state') return send(res, 200, await statePayload({ probe: url.searchParams.get('probe') === '1' }));
-      if (url.pathname === '/api/agents') return send(res, 200, { agents: agents.list() });
+      if (url.pathname === '/api/state') return send(res, 200, await statePayload({ probe: url.searchParams.get('probe') === '1' }), 'application/json; charset=utf-8', req);
+      if (url.pathname === '/api/agents') return send(res, 200, { agents: agents.list() }, 'application/json; charset=utf-8', req);
       /* ---- ফেজ ৪: মডেল ইন্টেলিজেন্স ---- */
       if (url.pathname === '/api/models/live') return send(res, 200, await mintel.liveCatalogue(url.searchParams.get('force') === '1'));
       if (url.pathname === '/api/models/bench') return send(res, 200, { status: mintel.statusOf(), last: mintel.lastResults() });
       if (url.pathname === '/api/models/route') return send(res, 200, { at: new Date().toISOString(), recommendations: mintel.recommendations() });
       if (url.pathname === '/api/usage') return send(res, 200, store.loadUsage());
       if (url.pathname === '/api/audit') return send(res, 200, { events: store.readAudit(Number(url.searchParams.get('n') || 80)) });
-      if (url.pathname === '/api/tasks') return send(res, 200, { tasks: (store.loadState().tasks || []).slice(-60).reverse() });
+      if (url.pathname === '/api/tasks' && req.method === 'GET') return send(res, 200, { tasks: taskrunner.list(), stats: taskrunner.stats() });
 
       if (url.pathname === '/api/keys' && req.method === 'POST') {
         const b = await readBody(req, 100000);
         const patch = {};
-        const KEY_FIELDS = ['OPENROUTER_API_KEY', 'GROQ_API_KEY', 'COARENA_API_KEY', 'NUMES_API_KEY'];
-        for (const k of KEY_FIELDS) if (k in b) patch[k] = String(b[k] || '').trim();
+        for (const [k, v] of Object.entries(b || {})) {
+          if (!/^[A-Z][A-Z0-9_]{2,40}$/.test(k)) continue;   // শুধু ভ্যালিড env-স্টাইল নাম
+          patch[k] = String(v || '').trim();
+        }
         store.writeKeys(patch);
         store.audit('keys_updated', { keys: Object.keys(patch).filter((k) => patch[k]) });
         return send(res, 200, { ok: true, providers: (await statePayload()).providers });
@@ -168,6 +191,54 @@ const server = http.createServer(async (req, res) => {
 
       if (url.pathname === '/api/health' && req.method === 'POST') {
         return send(res, 200, { ok: true, health: await gw.health({ probe: true }) });
+      }
+
+      /* ---- ফেজ ৫: টাস্ক রানার / লাইভ ইভেন্ট / অনুমোদন ---- */
+      if (url.pathname === '/api/tasks/stream' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no', ...corsHeaders(req) });
+        res.write(': connected\n\n');
+        const hb = setInterval(() => { try { res.write(': hb\n\n'); } catch {} }, 15000);
+        const onEv = ({ taskId, ev }) => { try { res.write(`data: ${JSON.stringify({ taskId, ev })}\n\n`); } catch {} };
+        taskrunner.events.on('event', onEv);
+        req.on('close', () => { clearInterval(hb); taskrunner.events.off('event', onEv); });
+        return;
+      }
+      if (url.pathname.startsWith('/api/tasks/') && req.method === 'GET') {
+        const id = url.pathname.split('/')[3];
+        const t = taskrunner.get(id);
+        if (!t) return send(res, 404, { ok: false, message: 'টাস্ক নেই' });
+        return send(res, 200, { id: t.id, status: t.status, agent: t.agent, text: t.text, result: t.result, error: t.error, events: t.events, at: t.at });
+      }
+      if (url.pathname === '/api/tasks' && req.method === 'POST') {
+        const b = await readBody(req, 400000);
+        const text = String(b.text || '').slice(0, 20000);
+        if (!text.trim()) return send(res, 400, { ok: false, message: 'বার্তা খালি' });
+        const t = taskrunner.create({ text, agent: b.agent, plan: !!b.plan, history: Array.isArray(b.history) ? b.history.slice(-12) : [], images: Array.isArray(b.images) ? b.images.slice(0, 3) : [], settings: b.settings || {} });
+        return send(res, 200, { ok: true, id: t.id, status: t.status });
+      }
+      if (url.pathname.match(/^\/api\/tasks\/[^/]+\/cancel$/) && req.method === 'POST') {
+        const id = url.pathname.split('/')[3];
+        return send(res, 200, { ok: taskrunner.cancel(id) });
+      }
+      if (url.pathname.match(/^\/api\/tasks\/[^/]+\/retry$/) && req.method === 'POST') {
+        const id = url.pathname.split('/')[3];
+        const t = taskrunner.retry(id);
+        return send(res, t ? 200 : 404, t ? { ok: true, id: t.id } : { ok: false, message: 'টাস্ক নেই' });
+      }
+      if (url.pathname === '/api/approvals' && req.method === 'GET') return send(res, 200, { ...approvals.list(), stats: approvals.stats() });
+      if (url.pathname.match(/^\/api\/approvals\/[^/]+$/) && req.method === 'POST') {
+        const id = url.pathname.split('/')[3];
+        const b = await readBody(req, 100000);
+        const ap = approvals.decide(id, String(b.action || ''), { args: b.args || null });
+        return send(res, ap ? 200 : 404, ap ? { ok: true, approval: ap } : { ok: false, message: 'অনুমোদন পাওয়া যায়নি' });
+      }
+      if (url.pathname === '/api/keys' && req.method === 'GET') return send(res, 200, { keys: secrets.list() });
+      if (url.pathname === '/api/keys' && req.method === 'DELETE') {
+        const name = url.searchParams.get('name') || '';
+        if (!name) return send(res, 400, { ok: false, message: 'name লাগবে' });
+        secrets.remove(name);
+        store.audit('key_deleted', { name });
+        return send(res, 200, { ok: true, keys: secrets.list() });
       }
 
       if (url.pathname === '/api/chat' && req.method === 'POST') {
