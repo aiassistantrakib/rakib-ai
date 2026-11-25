@@ -6,6 +6,10 @@
 <meta name="theme-color" content="#0b0f14" />
 <title>RAKIB AI — Agent Console</title>
 <link rel="manifest" href="/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <style>
   :root{
     --bg:#0a0e13; --panel:#121924; --panel2:#161f2c; --line:#222e3f; --line2:#2c3a4f;
@@ -132,6 +136,7 @@
       <span class="sp"></span>
       <span class="chip" id="liveChip">লাইভ</span>
       <button class="ghost tiny" id="refresh">↻</button>
+      <button class="ghost tiny" id="pwaBtn" style="display:none">⬇ ইনস্টল</button>
       <button class="ghost tiny mobile-only" id="mSide">◎</button>
     </div>
 
@@ -496,6 +501,18 @@ async function renderKeys() {
     toast('পছন্দ সংরক্ষিত');
   };
 }
+
+/* PWA: সার্ভিস ওয়ার্কার + ইনস্টল বাটন */
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; const b = document.getElementById('pwaBtn'); if (b) { b.style.display = 'inline-flex'; } });
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('pwaBtn');
+  if (b) b.onclick = async () => {
+    if (!installEvt) { toast('ব্রাউজার মেনু → “Add to Home screen” ব্যবহার করুন'); return; }
+    installEvt.prompt(); const r = await installEvt.userChoice; toast(r.outcome === 'accepted' ? 'ইনস্টল হয়েছে' : 'বাতিল'); installEvt = null; b.style.display = 'none';
+  };
+});
 
 boot();
 </script>

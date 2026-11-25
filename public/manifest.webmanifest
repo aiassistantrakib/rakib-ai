@@ -2,7 +2,7 @@
   "name": "RAKIB AI — Multi-Agent OS",
   "short_name": "RAKIB AI",
   "description": "ফ্রি, লোকাল-ফার্স্ট মাল্টি-এজেন্ট AI সিস্টেম",
-  "start_url": "/",
+  "start_url": "/console.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
@@ -10,7 +10,39 @@
   "theme_color": "#0b0d10",
   "lang": "bn",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "টাস্ক চ্যাট",
+      "url": "/console.html",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "মডেল ইন্টেলিজেন্স",
+      "url": "/models.html",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

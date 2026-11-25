@@ -8,8 +8,14 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node tests/tools.test.js && node tests/security.test.js && node tests/orchestrator.test.js",
-    "test:all": "node tests/tools.test.js && node tests/e2e.test.js && node tests/security.test.js && node tests/orchestrator.test.js && node tests/vision.test.js && node tests/research.test.js"
+    "test:all": "node tests/tools.test.js && node tests/e2e.test.js && node tests/security.test.js && node tests/orchestrator.test.js && node tests/vision.test.js && node tests/research.test.js",
+    "scan": "node scripts/security-scan.cjs"
   },
-  "engines": { "node": ">=20" },
-  "license": "MIT"
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.65.1"
+  }
 }

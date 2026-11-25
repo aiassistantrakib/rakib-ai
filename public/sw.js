@@ -1,6 +1,6 @@
 /* RAKIB AI service worker — app shell offline cache (API কখনো ক্যাশ হয় না) */
-const CACHE = 'rakib-v1';
-const SHELL = ['/', '/app.css', '/app.js', '/manifest.webmanifest', '/icon-192.png'];
+const CACHE = 'rakib-v2';
+const SHELL = ['/', '/console.html', '/app.css', '/app.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()).catch(() => {}));
 });
